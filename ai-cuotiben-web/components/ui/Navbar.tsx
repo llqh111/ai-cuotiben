@@ -20,6 +20,7 @@ export function Navbar() {
         <Link href="/upload" className="hover:text-zinc-900 transition-colors dark:hover:text-white">录入</Link>
         <Link href="/stats" className="hover:text-zinc-900 transition-colors dark:hover:text-white">统计</Link>
         <Link href="/sprint" className="hover:text-zinc-900 transition-colors dark:hover:text-white">冲刺</Link>
+        <Link href="/browse" className="hover:text-zinc-900 transition-colors dark:hover:text-white">错题本</Link>
         <Link href="/settings" className="hover:text-zinc-900 transition-colors dark:hover:text-white">设置</Link>
       </nav>
       <button
