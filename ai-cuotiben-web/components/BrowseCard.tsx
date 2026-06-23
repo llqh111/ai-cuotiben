@@ -12,6 +12,7 @@ interface BrowseCardProps {
   correct_answer: string;
   solution_steps: string;
   mastery_level: string;
+  image_url?: string;
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -33,10 +34,12 @@ export function BrowseCard({
   correct_answer,
   solution_steps,
   mastery_level: initialMastery,
+  image_url,
 }: BrowseCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mastery, setMastery] = useState(initialMastery);
+  const [showImage, setShowImage] = useState(false);
 
   const badge = MASTERY_BADGE[mastery] ?? MASTERY_BADGE.new;
 
@@ -77,6 +80,19 @@ export function BrowseCard({
         </div>
 
         {/* Question */}
+        {image_url && (
+          <div className="relative">
+            <img
+              src={`${process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000"}${image_url}`}
+              alt="题目原图"
+              className={`w-full rounded-xl object-cover cursor-pointer transition-all ${showImage ? "max-h-96" : "max-h-20 opacity-60 hover:opacity-80"}`}
+              onClick={() => setShowImage(!showImage)}
+            />
+            {!showImage && (
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] text-zinc-400 pointer-events-none">点击展开原图</span>
+            )}
+          </div>
+        )}
         <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 line-clamp-4 whitespace-pre-wrap">
           {question_content}
         </p>

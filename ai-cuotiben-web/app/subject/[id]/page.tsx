@@ -28,7 +28,7 @@ export default function SubjectPage({ params }: { params: Promise<{ id: string }
   return (
     <>
       <Navbar />
-      <main className="mx-auto w-full max-w-7xl px-4 py-32 md:py-40">
+      <main className="mx-auto w-full max-w-7xl px-4 pt-20 pb-24 md:py-40">
         <Link href="/dashboard" className="mb-12 inline-flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors dark:text-zinc-400 dark:hover:text-zinc-100">
           <ArrowLeft weight="bold" /> 返回仪表盘
         </Link>
@@ -52,10 +52,10 @@ export default function SubjectPage({ params }: { params: Promise<{ id: string }
             transition={{ duration: 0.8, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
             className="flex gap-3"
           >
-            <Link href={`/review/${id}`} className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+            <Link href={`/review/${id}`} className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
               <BookOpen size={18} weight="fill" /> 开始复习
             </Link>
-            <Link href={`/graph/${id}`} className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-white px-5 py-2.5 text-sm font-medium shadow-sm transition-all hover:bg-zinc-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+            <Link href={`/graph/${id}`} className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-white px-5 py-3 text-sm font-medium shadow-sm transition-all hover:bg-zinc-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
               <Network size={18} /> 知识图谱
             </Link>
           </motion.div>

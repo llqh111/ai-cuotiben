@@ -26,6 +26,7 @@ export default function UploadPage() {
   const [ocrFile, setOcrFile] = useState<File | null>(null);
   const [displayFile, setDisplayFile] = useState<File | null>(null);
   const [smallSubject, setSmallSubject] = useState(2);
+  const [smallConfirmMode, setSmallConfirmMode] = useState(false);
   const [smallUploading, setSmallUploading] = useState(false);
 
   // 大题
@@ -47,10 +48,21 @@ export default function UploadPage() {
     if (!ocrFile) return;
     setSmallUploading(true);
     try {
-      const data = await uploadSmallQuestion(ocrFile, displayFile, smallSubject);
-      const firstQ = data.questions?.[0];
-      if (firstQ) { router.push(`/question/${firstQ.id}`); }
-      else { alert("上传成功但未返回题目信息"); }
+      const data = await uploadSmallQuestion(ocrFile, displayFile, smallSubject, smallConfirmMode);
+      if (smallConfirmMode && "ocr_text" in data) {
+        // 确认模式：跳转到 OCR 修正页
+        const params = new URLSearchParams({
+          ocr_text: data.ocr_text || "",
+          image_url: data.image_url || "",
+          student_answer: "",
+          subject_id: String(data.subject_id || smallSubject),
+        });
+        router.push(`/upload/confirm?${params.toString()}`);
+      } else if ("questions" in data) {
+        const firstQ = data.questions?.[0];
+        if (firstQ) { router.push(`/question/${firstQ.id}`); }
+        else { alert("上传成功但未返回题目信息"); }
+      }
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) { router.replace("/login"); }
       else { alert(e instanceof ApiError ? e.message : "网络请求失败"); }
@@ -109,7 +121,7 @@ export default function UploadPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto w-full max-w-2xl px-4 py-32 md:py-40 relative">
+      <main className="mx-auto w-full max-w-2xl px-4 pt-20 pb-24 md:py-40 relative">
         {/* 上传中遮罩 */}
         {isAnyUploading && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md dark:bg-black/80">
@@ -187,8 +199,18 @@ export default function UploadPage() {
                   )}
                 </div>
 
+                <label className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smallConfirmMode}
+                    onChange={(e) => setSmallConfirmMode(e.target.checked)}
+                    className="rounded accent-blue-600"
+                  />
+                  识别后让我先修正 OCR 文字再分析
+                </label>
+
                 <button onClick={handleSmallSubmit} disabled={!ocrFile || smallUploading}
-                  className="self-end rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+                  className="self-end rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                   {smallUploading ? "识别中…" : "提交识别"}
                 </button>
               </div>
@@ -246,7 +268,7 @@ export default function UploadPage() {
                 </div>
 
                 <button onClick={handleBigSubmit} disabled={!bigImage || !bigText.trim() || bigUploading}
-                  className="self-end rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+                  className="self-end rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                   {bigUploading ? "分析中…" : "提交分析"}
                 </button>
               </div>
@@ -300,7 +322,7 @@ export default function UploadPage() {
                 </div>
 
                 <button onClick={handleTextSubmit} disabled={!textInput.trim() || textUploading}
-                  className="self-end rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+                  className="self-end rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                   {textUploading ? "分析中…" : "提交分析"}
                 </button>
               </div>

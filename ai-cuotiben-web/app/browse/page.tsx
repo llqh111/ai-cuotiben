@@ -93,7 +93,7 @@ export default function BrowsePage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto w-full max-w-7xl px-4 py-32 md:py-40">
+      <main className="mx-auto w-full max-w-7xl px-4 pt-20 pb-24 md:py-40">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -112,7 +112,7 @@ export default function BrowsePage() {
             </div>
             <button
               onClick={() => setDragMode(!dragMode)}
-              className={`rounded-full px-5 py-2.5 text-sm font-medium transition-all flex items-center gap-2 ${
+              className={`rounded-full px-5 py-3 text-sm font-medium transition-all flex items-center gap-2 ${
                 dragMode
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
                   : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"

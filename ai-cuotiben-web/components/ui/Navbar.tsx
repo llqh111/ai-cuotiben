@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SignOut } from "@phosphor-icons/react";
 import { logout } from "@/lib/api";
+import { MobileTabBar } from "@/components/ui/MobileTabBar";
 
 export function Navbar() {
   const router = useRouter();
   return (
+    <>
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
@@ -31,5 +33,7 @@ export function Navbar() {
         <SignOut size={16} weight="bold" />
       </button>
     </motion.header>
+    <MobileTabBar />
+    </>
   );
 }

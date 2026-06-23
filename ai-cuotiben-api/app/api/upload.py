@@ -154,6 +154,7 @@ async def upload_small(
     display_image: UploadFile = File(None),       # 可选：复习展示配图
     student_answer: str = Form(""),
     subject_id: int = Form(None),
+    confirm_first: bool = Form(False),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -185,6 +186,18 @@ async def upload_small(
 
     # Gemini OCR 识别
     ocr_text = await recognize_image(ocr_bytes)
+
+    # confirm_first 模式：只返回 OCR 文本，不分析
+    if confirm_first:
+        return {
+            "status": "ocr_done",
+            "data": {
+                "ocr_text": ocr_text,
+                "image_url": image_url,
+                "student_answer": student_answer,
+                "subject_id": subject_id,
+            },
+        }
 
     # DeepSeek 分析管道
     created = await _analyze_pipeline(db, user.id, ocr_text, image_url, student_answer, subject_id)
@@ -277,5 +290,39 @@ async def upload_text(
             "questions": created,
             "total": len(created),
             "image_url": image_url,
+        },
+    }
+
+# ────────────────────────────────────────────────
+#  入口四：OCR 修正确认
+# ────────────────────────────────────────────────
+
+from pydantic import BaseModel
+
+class ConfirmRequest(BaseModel):
+    ocr_text: str
+    image_url: str = ""
+    student_answer: str = ""
+    subject_id: int
+
+@router.post("/confirm")
+async def upload_confirm(
+    body: ConfirmRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """接收学生修正后的 OCR 文本，执行 DeepSeek 分析并落库。"""
+    if not body.ocr_text.strip():
+        raise HTTPException(400, "OCR 文本不能为空")
+
+    created = await _analyze_pipeline(
+        db, user.id, body.ocr_text, body.image_url, body.student_answer, body.subject_id
+    )
+
+    return {
+        "status": "success",
+        "data": {
+            "questions": created,
+            "total": len(created),
         },
     }

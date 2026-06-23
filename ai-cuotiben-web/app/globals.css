@@ -9,6 +9,10 @@
   transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+@utility pb-safe-offset {
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+}
+
 @layer components {
   /* Double-bezel core architecture classes */
   .premium-shell {

@@ -14,6 +14,7 @@ def _dump(q: WrongQuestion) -> dict:
             "question_type": q.question_type, "correct_answer": q.correct_answer,
             "original_text": q.ocr_text, "analysis": q.error_analysis, "answer": q.correct_answer,
             "solution_steps": q.solution_steps, "improvement_tips": q.improvement_tips,
+            "image_url": q.image_url,
             "status": q.status, "mastery_level": q.mastery_level, "created_at": q.created_at}
 
 async def _owned(db, user_id, qid) -> WrongQuestion:

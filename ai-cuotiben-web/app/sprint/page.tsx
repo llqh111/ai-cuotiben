@@ -46,7 +46,7 @@ export default function SprintPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto w-full max-w-5xl px-4 py-32 md:py-40">
+      <main className="mx-auto w-full max-w-5xl px-4 pt-20 pb-24 md:py-40">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}>
           <h1 className="text-4xl font-semibold tracking-tighter md:text-6xl">考前冲刺</h1>
           <p className="mt-4 max-w-2xl text-lg text-zinc-500 dark:text-zinc-400">基于你的高考日期和错题数据，AI 自动规划每日复习策略。</p>

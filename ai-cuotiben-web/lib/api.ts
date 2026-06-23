@@ -102,17 +102,26 @@ export interface UploadResult {
   image_url?: string;
 }
 
+export interface OcrDoneResult {
+  ocr_text: string;
+  image_url: string;
+  student_answer: string;
+  subject_id: number;
+}
+
 // 小题上传：OCR图(必传) + 展示配图(可选)，Gemini 自动 OCR
 export async function uploadSmallQuestion(
   ocrImage: File,
   displayImage: File | null,
   subjectId?: number,
-): Promise<UploadResult> {
+  confirmFirst = false,
+): Promise<UploadResult | OcrDoneResult> {
   const fd = new FormData();
   fd.append("ocr_image", ocrImage);
   if (displayImage) fd.append("display_image", displayImage);
-  if (subjectId) fd.append("subject_id", String(subjectId));
-  return apiFetch<UploadResult>("/api/upload/small", { method: "POST", body: fd });
+  if (subjectId != null) fd.append("subject_id", String(subjectId));
+  fd.append("confirm_first", String(confirmFirst));
+  return apiFetch<UploadResult | OcrDoneResult>("/api/upload/small", { method: "POST", body: fd });
 }
 
 // 大题上传：题目图(必传) + 外部AI文本(必传)，不自动 OCR
@@ -136,6 +145,19 @@ export async function uploadText(text: string, subjectId: number, image?: File |
   return apiFetch<UploadResult>("/api/upload/text", {
     method: "POST",
     body: fd,
+  });
+}
+
+// OCR 确认后提交修正文本，触发 DeepSeek 分析
+export function confirmUpload(body: {
+  ocr_text: string;
+  image_url: string;
+  student_answer: string;
+  subject_id: number;
+}): Promise<UploadResult> {
+  return apiFetch<UploadResult>("/api/upload/confirm", {
+    method: "POST",
+    body: JSON.stringify(body),
   });
 }
 

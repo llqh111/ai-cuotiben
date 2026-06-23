@@ -15,7 +15,7 @@ def _client():
 
 async def _chat_json(system: str, user: str) -> dict:
     resp = await _client().chat.completions.create(
-        model="deepseek-chat",
+        model="deepseek-v4-pro",
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         response_format={"type": "json_object"},
         temperature=0.3)

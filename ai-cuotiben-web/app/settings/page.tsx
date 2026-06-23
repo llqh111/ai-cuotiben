@@ -47,7 +47,7 @@ export default function SettingsPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto w-full max-w-3xl px-4 py-32 md:py-40">
+      <main className="mx-auto w-full max-w-3xl px-4 pt-20 pb-24 md:py-40">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

@@ -21,6 +21,7 @@ interface QuestionDetail {
   original_text: string;
   analysis: string;
   answer: string;
+  image_url?: string;
 }
 
 export default function QuestionDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -70,7 +71,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
     return (
       <>
         <Navbar />
-        <main className="mx-auto w-full max-w-7xl px-4 py-32 md:py-40 flex justify-center items-center h-[50vh]">
+        <main className="mx-auto w-full max-w-7xl px-4 pt-20 pb-24 md:py-40 flex justify-center items-center h-[50vh]">
            <CircleNotch size={32} className="animate-spin text-zinc-400" />
         </main>
       </>
@@ -81,7 +82,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
     return (
       <>
         <Navbar />
-        <main className="mx-auto w-full max-w-7xl px-4 py-32 md:py-40 flex justify-center items-center h-[50vh]">
+        <main className="mx-auto w-full max-w-7xl px-4 pt-20 pb-24 md:py-40 flex justify-center items-center h-[50vh]">
            <p className="text-zinc-500">找不到该题目信息</p>
         </main>
       </>
@@ -91,7 +92,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <Navbar />
-      <main className="mx-auto w-full max-w-7xl px-4 py-32 md:py-40">
+      <main className="mx-auto w-full max-w-7xl px-4 pt-20 pb-24 md:py-40">
         <Link href="/dashboard" className="mb-12 inline-flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors dark:text-zinc-400 dark:hover:text-zinc-100">
           <ArrowLeft weight="bold" /> 返回仪表盘
         </Link>
@@ -101,6 +102,20 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
           
           {/* Left Column: Typography & Content */}
           <div className="w-full md:w-[55%]">
+            {data.image_url && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mb-8 overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800"
+              >
+                <img
+                  src={`${process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000"}${data.image_url}`}
+                  alt="题目原图"
+                  className="w-full object-contain max-h-96"
+                />
+              </motion.div>
+            )}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
