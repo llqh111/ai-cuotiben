@@ -1,10 +1,10 @@
 "use client";
 import { motion } from "motion/react";
 import { Navbar } from "@/components/ui/Navbar";
-import { Camera, FileImage, CircleNotch, Article, Image, Stack, ArrowRight } from "@phosphor-icons/react";
+import { Camera, FileImage, CircleNotch, Article, Image, Stack, ArrowRight, FilePdf } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { uploadSmallQuestion, uploadBigQuestion, uploadText, useAuthGuard, ApiError, SUBJECTS } from "@/lib/api";
+import { uploadSmallQuestion, uploadBigQuestion, uploadText, useAuthGuard, ApiError, SUBJECTS, uploadPdf } from "@/lib/api";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -42,6 +42,12 @@ export default function UploadPage() {
   const [textImage, setTextImage] = useState<File | null>(null);
   const [textSubject, setTextSubject] = useState(2);
   const [textUploading, setTextUploading] = useState(false);
+
+  // PDF
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfSubject, setPdfSubject] = useState(2);
+  const [pdfUploading, setPdfUploading] = useState(false);
 
   // ─── 小题上传 ───
   const handleSmallSubmit = async () => {
@@ -99,7 +105,21 @@ export default function UploadPage() {
     } finally { setTextUploading(false); }
   };
 
-  const isAnyUploading = smallUploading || bigUploading || textUploading;
+  // ─── PDF 上传 ───
+  const handlePdfSubmit = async () => {
+    if (!pdfFile) return;
+    setPdfUploading(true);
+    try {
+      const data = await uploadPdf(pdfFile, pdfSubject);
+      sessionStorage.setItem("pdf_review_data", JSON.stringify(data));
+      router.push("/upload/pdf-review");
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) { router.replace("/login"); }
+      else { alert(e instanceof ApiError ? e.message : "PDF 上传失败"); }
+    } finally { setPdfUploading(false); }
+  };
+
+  const isAnyUploading = smallUploading || bigUploading || textUploading || pdfUploading;
 
   // 科目选择器组件
   const SubjectPicker = ({ value, onChange }: { value: number; onChange: (id: number) => void }) => (
@@ -324,6 +344,51 @@ export default function UploadPage() {
                 <button onClick={handleTextSubmit} disabled={!textInput.trim() || textUploading}
                   className="self-end rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
                   {textUploading ? "分析中…" : "提交分析"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ═══════════ PDF 上传 ═══════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <div className="premium-shell">
+              <div className="premium-core p-6 flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                    <FilePdf size={20} weight="fill" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-zinc-900 dark:text-white">PDF 上传</h3>
+                    <p className="text-xs text-zinc-400">提取 PDF 文字 → AI 拆分分析 → 选题入库</p>
+                  </div>
+                  <div className="ml-auto">
+                    <SubjectPicker value={pdfSubject} onChange={setPdfSubject} />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <input type="file" accept=".pdf" className="hidden" ref={pdfInputRef}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && checkFileSize(f)) setPdfFile(f);
+                    }} />
+                  <button onClick={() => pdfInputRef.current?.click()}
+                    className="flex items-center gap-2 rounded-xl border-2 border-dashed border-indigo-200 px-4 py-3 text-sm font-medium text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/30">
+                    <FilePdf size={18} /> {pdfFile ? pdfFile.name : "选择 PDF 文件（试卷/练习册）"}
+                  </button>
+                  {pdfFile && (
+                    <button onClick={() => { setPdfFile(null); if (pdfInputRef.current) pdfInputRef.current.value = ""; }}
+                      className="text-xs text-red-400 hover:text-red-600 shrink-0">移除</button>
+                  )}
+                </div>
+
+                <button onClick={handlePdfSubmit} disabled={!pdfFile || pdfUploading}
+                  className="self-end rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:opacity-30 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+                  {pdfUploading ? "分析中…" : "开始分析"}
                 </button>
               </div>
             </div>

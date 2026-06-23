@@ -366,6 +366,113 @@ export async function downloadPdf(opts: ExportOptions): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+// ── PDF 上传 ──
+
+export interface PdfQuestion {
+  index: number;
+  question_content: string;
+  question_type: string;
+  correct_answer: string;
+  solution_steps: string;
+  knowledge_point_name: string;
+  question_pattern_name: string;
+  selected?: boolean;
+}
+
+export interface PdfAnalysisResult {
+  filename: string;
+  subject_id: number;
+  subject_name: string;
+  total_count: number;
+  questions: PdfQuestion[];
+}
+
+export async function uploadPdf(file: File, subjectId: number): Promise<PdfAnalysisResult> {
+  const token = getToken();
+  const form = new FormData();
+  form.append("file", file);
+  form.append("subject_id", String(subjectId));
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const res = await fetch(`${API_BASE}/api/upload/pdf`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+  if (res.status === 401) { clearToken(); throw new ApiError("登录已过期", 401); }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "上传失败" }));
+    throw new ApiError(err.detail || "上传失败", res.status);
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export async function confirmPdfQuestions(
+  subjectId: number,
+  questions: PdfQuestion[]
+): Promise<{ saved_count: number; saved_ids: number[]; first_question_id: number | null }> {
+  return apiFetch("/api/upload/pdf/confirm", {
+    method: "POST",
+    body: JSON.stringify({ subject_id: subjectId, questions }),
+  });
+}
+
+export async function batchQuestions(action: "delete" | "master", ids: number[]): Promise<{ message: string; count: number }> {
+  return apiFetch("/api/questions/batch", {
+    method: "POST",
+    body: JSON.stringify({ action, ids }),
+  });
+}
+
+// ── 统计仪表盘 ──
+
+export interface StatsOverview {
+  total: number;
+  mastered: number;
+  learning: number;
+  new: number;
+  mastery_rate: number;
+}
+
+export interface SubjectStat {
+  id: number;
+  name: string;
+  icon: string;
+  color: string;
+  total: number;
+  mastered: number;
+  learning: number;
+  new: number;
+}
+
+export interface DailyReview {
+  due_total: number;
+  completed: number;
+  rate: number;
+  streak: number;
+}
+
+export async function getStatsOverview(): Promise<StatsOverview> {
+  return apiFetch<StatsOverview>("/api/stats/overview");
+}
+
+export async function getStatsSubjects(): Promise<SubjectStat[]> {
+  return apiFetch<SubjectStat[]>("/api/stats/subjects");
+}
+
+export async function getStatsTrends(days: number = 30): Promise<TrendPoint[]> {
+  return apiFetch<TrendPoint[]>(`/api/stats/trends?days=${days}`);
+}
+
+export async function getStatsWeakPoints(): Promise<WeakPoint[]> {
+  return apiFetch<WeakPoint[]>("/api/stats/weak-points");
+}
+
+export async function getStatsDailyReview(): Promise<DailyReview> {
+  return apiFetch<DailyReview>("/api/stats/daily-completion");
+}
+
 // ---- 鉴权守卫：无 token 跳登录 ----
 
 export function useAuthGuard(): void {

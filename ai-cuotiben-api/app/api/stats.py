@@ -56,11 +56,18 @@ async def weak_points(db: AsyncSession = Depends(get_db), user: User = Depends(g
         agg[q.knowledge_point_id]["total"] += 1
         if q.mastery_level == "mastered":
             agg[q.knowledge_point_id]["mastered"] += 1
+
+    # 批量加载所有涉及的知识点（一次查询替代 N 次）
+    kp_ids = list(agg.keys())
+    kp_map = {}
+    if kp_ids:
+        kps = (await db.execute(select(KnowledgePoint).where(KnowledgePoint.id.in_(kp_ids)))).scalars().all()
+        kp_map = {kp.id: kp.name for kp in kps}
+
     items = []
     for kp_id, c in agg.items():
-        kp = (await db.execute(select(KnowledgePoint).where(KnowledgePoint.id == kp_id))).scalars().first()
         rate = c["mastered"] / c["total"] if c["total"] else 0
-        items.append({"knowledge_point": kp.name if kp else str(kp_id),
+        items.append({"knowledge_point": kp_map.get(kp_id, str(kp_id)),
                       "count": c["total"], "mastery_rate": round(rate * 100)})
     items.sort(key=lambda x: (-x["count"], x["mastery_rate"]))
     return {"status": "success", "data": items[:5]}
@@ -122,21 +129,58 @@ async def streak(db: AsyncSession = Depends(get_db), user: User = Depends(get_cu
 @router.get("/daily-completion")
 async def daily_completion(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     """今日复习完成率：已复习 / (已复习 + 仍到期未复习)。"""
+    from sqlalchemy import func
     today = date.today()
-    rows = (await db.execute(select(WrongQuestion).where(
-        WrongQuestion.user_id == user.id, WrongQuestion.mastery_level != "mastered"))).scalars().all()
+
+    # 一次查询拿所有未 mastered 题的 ID
+    row_ids = (await db.execute(
+        select(WrongQuestion.id).where(
+            WrongQuestion.user_id == user.id, WrongQuestion.mastery_level != "mastered"
+        )
+    )).scalars().all()
+
     remaining = 0
-    for q in rows:
-        rec = (await db.execute(select(ReviewRecord).where(ReviewRecord.question_id == q.id)
-               .order_by(ReviewRecord.id.desc()))).scalars().first()
-        if rec is None or (rec.next_review_date and rec.next_review_date <= today):
-            remaining += 1
-    recs = (await db.execute(select(ReviewRecord.question_id, ReviewRecord.reviewed_at)
-            .where(ReviewRecord.user_id == user.id))).all()
-    completed = len({qid for qid, ts in recs if _as_date(ts) == today})
+    if row_ids:
+        # 子查询：每道题的最新 review_record
+        latest_sub = (
+            select(ReviewRecord.question_id, func.max(ReviewRecord.id).label("max_id"))
+            .where(ReviewRecord.question_id.in_(row_ids))
+            .group_by(ReviewRecord.question_id)
+        ).subquery()
+        recs = (await db.execute(
+            select(ReviewRecord.question_id, ReviewRecord.next_review_date)
+            .join(latest_sub, ReviewRecord.id == latest_sub.c.max_id)
+        )).all()
+        rec_map = {qid: nrd for qid, nrd in recs}
+        for qid in row_ids:
+            nrd = rec_map.get(qid)
+            if nrd is None or nrd <= today:
+                remaining += 1
+
+    # 今日已完成 + streak（一次查询复用）
+    today_recs_raw = (await db.execute(
+        select(ReviewRecord.question_id, ReviewRecord.reviewed_at).where(
+            ReviewRecord.user_id == user.id
+        )
+    )).all()
+    completed = len({qid for qid, ts in today_recs_raw if _as_date(ts) == today})
+
     due_total = remaining + completed
     rate = round(completed / due_total * 100) if due_total else 0
-    return {"status": "success", "data": {"due_total": due_total, "completed": completed, "rate": rate}}
+
+    # streak
+    review_dates = {d for d in (_as_date(ts) for _, ts in today_recs_raw) if d is not None}
+    streak_count = 0
+    cursor = today
+    if cursor not in review_dates and (cursor - timedelta(days=1)) in review_dates:
+        cursor = cursor - timedelta(days=1)
+    while cursor in review_dates:
+        streak_count += 1
+        cursor -= timedelta(days=1)
+
+    return {"status": "success", "data": {
+        "due_total": due_total, "completed": completed, "rate": rate,
+        "streak": streak_count}}
 
 
 @router.get("/report")
@@ -160,12 +204,44 @@ async def report(period: str = "week", db: AsyncSession = Depends(get_db),
     for q in rows:
         if q.knowledge_point_id and q.mastery_level != "mastered":
             agg[q.knowledge_point_id] += 1
+    # 批量加载知识点名称
+    kp_ids = list(agg.keys())
+    kp_map = {}
+    if kp_ids:
+        kps = (await db.execute(select(KnowledgePoint).where(KnowledgePoint.id.in_(kp_ids)))).scalars().all()
+        kp_map = {kp.id: kp.name for kp in kps}
+
     weak = []
     for kp_id, cnt in sorted(agg.items(), key=lambda x: -x[1])[:3]:
-        kp = (await db.execute(select(KnowledgePoint).where(KnowledgePoint.id == kp_id))).scalars().first()
-        weak.append({"knowledge_point": kp.name if kp else str(kp_id), "count": cnt})
+        weak.append({"knowledge_point": kp_map.get(kp_id, str(kp_id)), "count": cnt})
     return {"status": "success", "data": {
         "period": period, "span_days": span,
         "start": start.isoformat(), "end": today.isoformat(),
         "new_questions": new_count, "mastered": mastered_count,
         "reviews": reviews, "accuracy": accuracy, "weak_points": weak}}
+
+
+@router.get("/subjects")
+async def subject_distribution(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    """六科错题分布：每科 total / mastered / learning / new。"""
+    from app.models import Subject
+    subs = (await db.execute(select(Subject))).scalars().all()
+    questions = (await db.execute(select(WrongQuestion).where(WrongQuestion.user_id == user.id))).scalars().all()
+
+    # 按科目聚合
+    by_subject = {}
+    for q in questions:
+        if q.subject_id not in by_subject:
+            by_subject[q.subject_id] = {"total": 0, "mastered": 0, "learning": 0, "new": 0}
+        by_subject[q.subject_id]["total"] += 1
+        by_subject[q.subject_id][q.mastery_level] += 1
+
+    result = []
+    for sub in subs:
+        stats = by_subject.get(sub.id, {"total": 0, "mastered": 0, "learning": 0, "new": 0})
+        result.append({
+            "id": sub.id, "name": sub.name, "icon": sub.icon, "color": sub.color,
+            "total": stats["total"], "mastered": stats["mastered"],
+            "learning": stats["learning"], "new": stats["new"]
+        })
+    return {"status": "success", "data": result}

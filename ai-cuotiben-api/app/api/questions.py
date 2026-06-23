@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
@@ -71,3 +72,41 @@ async def delete_question(question_id: int, db: AsyncSession = Depends(get_db), 
     await db.execute(delete(ReviewRecord).where(ReviewRecord.question_id == q.id))
     await db.delete(q); await db.commit()
     return {"status": "success", "message": "已删除"}
+
+
+class BatchRequest(BaseModel):
+    action: str  # "delete" | "master"
+    ids: list[int]
+
+
+@router.post("/batch")
+async def batch_operation(body: BatchRequest,
+                          db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    """批量操作：删除或标记已掌握。"""
+    if body.action not in ("delete", "master"):
+        raise HTTPException(400, "action 必须是 delete 或 master")
+
+    if not body.ids:
+        raise HTTPException(400, "ids 不能为空")
+
+    # 只操作属于自己的题
+    rows = (await db.execute(select(WrongQuestion).where(
+        WrongQuestion.id.in_(body.ids), WrongQuestion.user_id == user.id))).scalars().all()
+
+    if not rows:
+        raise HTTPException(404, "没有找到可操作的错题")
+
+    if body.action == "delete":
+        qids = [q.id for q in rows]
+        await db.execute(delete(ReviewRecord).where(ReviewRecord.question_id.in_(qids)))
+        for q in rows:
+            await db.delete(q)
+        msg = f"已删除 {len(rows)} 道错题"
+
+    elif body.action == "master":
+        for q in rows:
+            q.mastery_level = "mastered"
+        msg = f"已标记 {len(rows)} 道题为已掌握"
+
+    await db.commit()
+    return {"status": "success", "message": msg, "count": len(rows)}

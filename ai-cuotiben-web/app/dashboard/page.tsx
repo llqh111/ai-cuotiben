@@ -1,10 +1,10 @@
 "use client";
 import { motion } from "motion/react";
 import { Navbar } from "@/components/ui/Navbar";
-import { BookOpen, ChartLineUp, ClockCountdown } from "@phosphor-icons/react";
+import { BookOpen, ChartLineUp, ClockCountdown, Bell } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiFetch, useAuthGuard, subjectName, getProfile, type Profile } from "@/lib/api";
+import { apiFetch, useAuthGuard, subjectName, getProfile, getStatsDailyReview, type Profile, type DailyReview } from "@/lib/api";
 
 interface StatsData {
   total_questions: number;
@@ -17,10 +17,11 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<StatsData>({ total_questions: 0, mastery_rate: 0, subject_distribution: {} });
 
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [dailyReview, setDailyReview] = useState<DailyReview | null>(null);
 
   useEffect(() => {
-    Promise.all([apiFetch<StatsData>("/api/stats"), getProfile()])
-      .then(([s, p]) => { setStats(s); setProfile(p); })
+    Promise.all([apiFetch<StatsData>("/api/stats"), getProfile(), getStatsDailyReview()])
+      .then(([s, p, dr]) => { setStats(s); setProfile(p); setDailyReview(dr); })
       .catch(() => {});
   }, []);
 
@@ -55,7 +56,40 @@ export default function DashboardPage() {
 
         {/* Asymmetrical Bento Grid */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-12 md:grid-rows-2">
-          
+
+          {/* Card 0: Review Reminder — 待复习提醒 */}
+          {dailyReview && dailyReview.due_total > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="md:col-span-12 premium-shell bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-500/5 dark:to-purple-500/5 border-indigo-200 dark:border-indigo-800/50"
+            >
+              <div className="premium-core p-5 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
+                    <Bell size={24} weight="fill" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-zinc-900 dark:text-white">
+                      今日复习提醒
+                    </p>
+                    <p className="text-sm text-zinc-500">
+                      {dailyReview.due_total - dailyReview.completed} 题待复习
+                      {dailyReview.streak > 0 && ` · 🔥 连续 ${dailyReview.streak} 天`}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href={`/review/${topSubjectId}`}
+                  className="rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+                >
+                  开始复习
+                </Link>
+              </div>
+            </motion.div>
+          )}
+
           {/* Card 1: Review Action (Large) */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}

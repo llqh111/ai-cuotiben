@@ -1,10 +1,10 @@
 "use client";
 import { motion } from "motion/react";
 import { Navbar } from "@/components/ui/Navbar";
-import { CircleNotch, BookOpen, ArrowsOutCardinal } from "@phosphor-icons/react";
+import { CircleNotch, BookOpen, ArrowsOutCardinal, CheckSquare, Trash, Check } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
-import { apiFetch, useAuthGuard, SUBJECTS, subjectName } from "@/lib/api";
+import { apiFetch, useAuthGuard, SUBJECTS, subjectName, batchQuestions } from "@/lib/api";
 
 interface QuestionRow {
   id: number;
@@ -38,6 +38,10 @@ export default function BrowsePage() {
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
   const [dragOverTab, setDragOverTab] = useState(false);
+  // 批量模式
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [batchLoading, setBatchLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -87,6 +91,36 @@ export default function BrowsePage() {
 
   const kpName = (kpId: number | null) => kps.find((k) => k.id === kpId)?.name ?? "未分类";
 
+  // 批量操作
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedIds(new Set(questions.map(q => q.id)));
+  const deselectAll = () => setSelectedIds(new Set());
+
+  const handleBatch = async (action: "delete" | "master") => {
+    if (selectedIds.size === 0) return;
+    const label = action === "delete" ? "删除" : "标记已掌握";
+    if (!confirm(`确定${label}已选的 ${selectedIds.size} 道题？`)) return;
+    setBatchLoading(true);
+    try {
+      await batchQuestions(action, Array.from(selectedIds));
+      setSelectedIds(new Set());
+      setBatchMode(false);
+      // 刷新列表
+      const [qs] = await Promise.all([
+        apiFetch<QuestionRow[]>(`/api/questions?subject_id=${activeSubject}`),
+      ]);
+      setQuestions(qs);
+    } catch { alert("操作失败"); }
+    finally { setBatchLoading(false); }
+  };
+
   const total = questions.length;
   const mastered = questions.filter((q) => q.mastery_level === "mastered").length;
 
@@ -110,17 +144,30 @@ export default function BrowsePage() {
                 {subjectName(activeSubject)} · 共 {total} 道 · 已掌握 {mastered} 道
               </p>
             </div>
-            <button
-              onClick={() => setDragMode(!dragMode)}
-              className={`rounded-full px-5 py-3 text-sm font-medium transition-all flex items-center gap-2 ${
-                dragMode
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
-              }`}
-            >
-              <ArrowsOutCardinal size={16} />
-              {dragMode ? "退出分类" : "拖拽分类"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setBatchMode(!batchMode)}
+                className={`rounded-full px-5 py-3 text-sm font-medium transition-all flex items-center gap-2 ${
+                  batchMode
+                    ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400"
+                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
+                }`}
+              >
+                <CheckSquare size={16} />
+                {batchMode ? "退出批量" : "批量操作"}
+              </button>
+              <button
+                onClick={() => setDragMode(!dragMode)}
+                className={`rounded-full px-5 py-3 text-sm font-medium transition-all flex items-center gap-2 ${
+                  dragMode
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
+                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
+                }`}
+              >
+                <ArrowsOutCardinal size={16} />
+                {dragMode ? "退出分类" : "拖拽分类"}
+              </button>
+            </div>
           </div>
         </motion.div>
 
@@ -140,6 +187,37 @@ export default function BrowsePage() {
             </button>
           ))}
         </div>
+
+        {/* 批量操作栏 */}
+        {batchMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-2xl bg-indigo-50/50 border-2 border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-800 flex items-center justify-between"
+          >
+            <div className="flex gap-2">
+              <button onClick={selectAll} className="px-3 py-1.5 text-xs rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 transition-colors">全选</button>
+              <button onClick={deselectAll} className="px-3 py-1.5 text-xs rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 transition-colors">取消</button>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-zinc-500">已选 {selectedIds.size} 题</span>
+              <button
+                onClick={() => handleBatch("master")}
+                disabled={selectedIds.size === 0 || batchLoading}
+                className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 disabled:opacity-30 dark:bg-emerald-500/20 dark:text-emerald-400"
+              >
+                <Check size={14} />标记已掌握
+              </button>
+              <button
+                onClick={() => handleBatch("delete")}
+                disabled={selectedIds.size === 0 || batchLoading}
+                className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-30 dark:bg-red-500/20 dark:text-red-400"
+              >
+                <Trash size={14} />删除
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* 拖拽模式：目标区域 */}
         {dragMode && kps.length > 0 && (
@@ -188,9 +266,20 @@ export default function BrowsePage() {
                 onDragStart={(e) => handleDragStart(e, q.id)}
                 onDragEnd={handleDragEnd}
                 className={`${dragMode ? "cursor-grab active:cursor-grabbing" : ""} ${draggedId === q.id ? "opacity-50" : ""}`}
+                onClick={batchMode ? () => toggleSelect(q.id) : undefined}
               >
-                <div className="premium-shell">
+                <div className={`premium-shell ${batchMode && selectedIds.has(q.id) ? "ring-2 ring-indigo-500" : ""}`}>
                   <div className="premium-core p-6 flex flex-col gap-4">
+                    {/* Batch checkbox */}
+                    {batchMode && (
+                      <div className="flex justify-end">
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                          selectedIds.has(q.id) ? "bg-indigo-500 border-indigo-500" : "border-zinc-300 dark:border-zinc-600"
+                        }`}>
+                          {selectedIds.has(q.id) && <Check size={12} weight="bold" className="text-white" />}
+                        </div>
+                      </div>
+                    )}
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-black/5 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.15em] dark:border-white/10 dark:bg-white/5">

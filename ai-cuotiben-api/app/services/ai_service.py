@@ -9,13 +9,14 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro")
 
 def _client():
     return AsyncOpenAI(api_key=DEEPSEEK_API_KEY or "mock-key", base_url="https://api.deepseek.com/v1")
 
 async def _chat_json(system: str, user: str) -> dict:
     resp = await _client().chat.completions.create(
-        model="deepseek-v4-pro",
+        model=DEEPSEEK_MODEL,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         response_format={"type": "json_object"},
         temperature=0.3)

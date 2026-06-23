@@ -16,7 +16,8 @@ from app.models import User, Subject, KnowledgePoint, QuestionPattern, WrongQues
 from app.core.security import get_current_user
 from app.services import ai_service
 from app.services.gemini_service import recognize_image
-from app.services.upload_pipeline import split_questions
+from app.services.upload_pipeline import split_questions, analyze_pdf_questions
+from app.services.ocr_service import extract_text_from_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -325,4 +326,135 @@ async def upload_confirm(
             "questions": created,
             "total": len(created),
         },
+    }
+
+# ────────────────────────────────────────────────
+#  入口五：PDF 上传
+# ────────────────────────────────────────────────
+
+@router.post("/pdf")
+async def upload_pdf(
+    file: UploadFile = File(...),
+    subject_id: int = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """上传 PDF：提取文字 → AI 拆分分析 → 返回题目列表（未入库）。用户后续通过 /pdf/confirm 选题入库。"""
+    if file.content_type != "application/pdf":
+        raise HTTPException(400, "仅支持 PDF 文件")
+
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(400, "文件不能超过 10MB")
+
+    # 确保科目存在
+    subj = (await db.execute(select(Subject).where(Subject.id == subject_id))).scalars().first()
+    if subj is None:
+        raise HTTPException(400, f"科目 {subject_id} 不存在")
+
+    # 提取文字
+    full_text = await extract_text_from_pdf(contents)
+    if not full_text or full_text.startswith("["):
+        raise HTTPException(422, f"PDF 文字提取失败: {full_text}")
+
+    # AI 拆分+分析
+    questions = await analyze_pdf_questions(full_text)
+
+    return {
+        "status": "success",
+        "data": {
+            "filename": file.filename,
+            "subject_id": subject_id,
+            "subject_name": subj.name,
+            "total_count": len(questions),
+            "questions": [{
+                "index": q["index"],
+                "question_content": q["question_content"],
+                "question_type": q["question_type"],
+                "correct_answer": q.get("correct_answer", ""),
+                "solution_steps": q.get("solution_steps", ""),
+                "knowledge_point_name": q.get("knowledge_point_name", "待分类"),
+                "question_pattern_name": q.get("question_pattern_name", "待分类"),
+            } for q in questions]
+        }
+    }
+
+
+class PdfConfirmBody(BaseModel):
+    subject_id: int
+    questions: list[dict]
+
+
+@router.post("/pdf/confirm")
+async def confirm_pdf_questions(
+    body: PdfConfirmBody,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """将 PDF 分析结果中的题目逐条入库（按 selected=true 过滤）。"""
+    selected = [q for q in body.questions if q.get("selected", False)]
+    if not selected:
+        raise HTTPException(400, "至少选择一道题")
+
+    subj = (await db.execute(select(Subject).where(Subject.id == body.subject_id))).scalars().first()
+    if subj is None:
+        raise HTTPException(400, f"科目 {body.subject_id} 不存在")
+
+    # 获取该用户该科目下已有知识点和题型列表
+    kps = (await db.execute(select(KnowledgePoint).where(
+        KnowledgePoint.user_id == user.id, KnowledgePoint.subject_id == body.subject_id
+    ))).scalars().all()
+    existing_kp_names = {kp.name: kp for kp in kps}
+
+    saved_ids = []
+    for q in selected:
+        # 知识点：匹配已有或新建
+        kp_name = q.get("knowledge_point_name", "待分类")
+        if kp_name in existing_kp_names:
+            kp = existing_kp_names[kp_name]
+        else:
+            kp = KnowledgePoint(user_id=user.id, subject_id=body.subject_id, name=kp_name)
+            db.add(kp)
+            await db.flush()
+            existing_kp_names[kp_name] = kp
+
+        # 题型：匹配已有或新建
+        pat_name = q.get("question_pattern_name", "待分类")
+        pat = (await db.execute(select(QuestionPattern).where(
+            QuestionPattern.user_id == user.id,
+            QuestionPattern.knowledge_point_id == kp.id,
+            QuestionPattern.name == pat_name
+        ))).scalars().first()
+        if pat is None:
+            pat = QuestionPattern(user_id=user.id, knowledge_point_id=kp.id, name=pat_name)
+            db.add(pat)
+            await db.flush()
+
+        # 写入错题
+        wq = WrongQuestion(
+            user_id=user.id,
+            subject_id=body.subject_id,
+            knowledge_point_id=kp.id,
+            question_pattern_id=pat.id,
+            ocr_text="",
+            question_content=q["question_content"],
+            question_type=q.get("question_type", "essay"),
+            correct_answer=q.get("correct_answer", ""),
+            solution_steps=q.get("solution_steps", ""),
+            status="analyzed",
+            mastery_level="new",
+        )
+        db.add(wq)
+        await db.flush()
+        saved_ids.append(wq.id)
+
+    await db.commit()
+
+    return {
+        "status": "success",
+        "data": {
+            "saved_count": len(saved_ids),
+            "saved_ids": saved_ids,
+            "first_question_id": saved_ids[0] if saved_ids else None,
+        }
     }
