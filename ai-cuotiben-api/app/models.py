@@ -76,3 +76,27 @@ class ReviewRecord(Base):
     next_review_date = Column(Date, nullable=True)
     consecutive_correct = Column(Integer, default=0)
     reviewed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PracticeQuestion(Base):
+    """AI 针对某错题生成的相似练习题，不计入错题本。"""
+    __tablename__ = "practice_questions"
+    id = Column(Integer, primary_key=True, index=True)
+    source_question_id = Column(Integer, ForeignKey("wrong_questions.id"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    content = Column(Text, nullable=False)
+    answer = Column(Text, nullable=True)
+    solution = Column(Text, nullable=True)
+    user_result = Column(String, default="unanswered")  # correct / wrong / unanswered
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class KnowledgeRelation(Base):
+    """知识点之间的逻辑关系，驱动关联图谱连线。"""
+    __tablename__ = "knowledge_relations"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), index=True, nullable=False)
+    source_point_id = Column(Integer, ForeignKey("knowledge_points.id"), nullable=False)
+    target_point_id = Column(Integer, ForeignKey("knowledge_points.id"), nullable=False)
+    relation_type = Column(String, default="相关")  # 前置 / 相关 / 延伸

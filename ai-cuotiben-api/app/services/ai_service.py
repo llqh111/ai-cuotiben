@@ -63,3 +63,46 @@ async def classify_question(question: str, correct_answer: str, student_answer: 
     except Exception as e:
         logger.error(f"classify_question 失败: {e}")
         return {}
+
+SIMILAR_SYSTEM = (
+    "你是高考命题老师。基于给定错题，生成 3 道相似练习题：同知识点、同解题方法、同题型、难度相近。"
+    "输出 JSON，字段 questions 为数组，每项含 content(题目), answer(答案), solution(解析)。只输出 JSON。")
+
+async def generate_similar(question: str, knowledge_point: str, question_pattern: str,
+                           question_type: str = "essay") -> list[dict]:
+    if not DEEPSEEK_API_KEY:
+        await asyncio.sleep(0)
+        return [
+            {"content": f"（mock）相似题{i}：基于「{knowledge_point}」的{question_pattern}练习。",
+             "answer": "（mock）答案", "solution": "（mock）解析步骤"}
+            for i in range(1, 4)]
+    try:
+        user = (f"原题：{question}\n知识点：{knowledge_point}\n题型/方法：{question_pattern}\n"
+                f"题目类型：{question_type}")
+        out = await _chat_json(SIMILAR_SYSTEM, user)
+        items = out.get("questions", []) if isinstance(out, dict) else []
+        return items[:3]
+    except Exception as e:
+        logger.error(f"generate_similar 失败: {e}")
+        return []
+
+RELATIONS_SYSTEM = (
+    "你是高中学科知识体系专家。给定同一科目下的知识点列表，分析它们之间的逻辑关系。"
+    "输出 JSON，字段 relations 为数组，每项含 source(起始知识点名), target(关联知识点名), "
+    "relation_type(前置/相关/延伸 三选一)。只在确有关系时连线，不要全连。只输出 JSON。")
+
+async def analyze_relations(subject: str, knowledge_points: list[str]) -> list[dict]:
+    if len(knowledge_points) < 2:
+        return []
+    if not DEEPSEEK_API_KEY:
+        await asyncio.sleep(0)
+        # mock：相邻知识点串成「相关」链，给前端图谱一个可见结构
+        return [{"source": a, "target": b, "relation_type": "相关"}
+                for a, b in zip(knowledge_points, knowledge_points[1:])]
+    try:
+        user = f"科目：{subject}\n知识点列表：{knowledge_points}"
+        out = await _chat_json(RELATIONS_SYSTEM, user)
+        return out.get("relations", []) if isinstance(out, dict) else []
+    except Exception as e:
+        logger.error(f"analyze_relations 失败: {e}")
+        return []
