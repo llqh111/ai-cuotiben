@@ -5,56 +5,39 @@ from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
-_paddle_ocr = None
-_paddle_available = False
+_TESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+if not os.path.exists(_TESSERACT_CMD):
+    _TESSERACT_CMD = "tesseract"
 
-def _get_ocr():
-    global _paddle_ocr, _paddle_available
-    if _paddle_ocr is None:
-        try:
-            from paddleocr import PaddleOCR
-            _paddle_ocr = PaddleOCR(lang='ch', use_textline_orientation=True)
-            _paddle_available = True
-            logger.info("PaddleOCR 初始化成功")
-        except Exception as e:
-            logger.warning(f"PaddleOCR 初始化失败，将使用 mock 兜底: {e}")
-            _paddle_ocr = None
-            _paddle_available = False
-    return _paddle_ocr, _paddle_available
+_TESSDATA_DIR = os.path.expanduser(r"~\.tesseract\tessdata")
+os.environ["TESSDATA_PREFIX"] = _TESSDATA_DIR  # 覆盖外部环境变量，确保使用 Windows 路径
 
 
 async def extract_text_from_image(file_bytes: bytes) -> str:
-    """对图片字节执行 OCR，返回识别文本。PaddleOCR 不可用时走 mock 兜底。"""
-    ocr, available = _get_ocr()
-    if not available:
-        await asyncio.sleep(1)
-        return _mock_ocr_result()
-
+    """对图片字节执行 OCR，优先用 Tesseract 中文识别，失败则 mock 兜底。"""
     def _run():
-        import numpy as np
-        from PIL import Image
-        # PaddleOCR 的 ocr 方法接受图片路径或 numpy array
-        img = Image.open(BytesIO(file_bytes))
-        img_np = np.array(img)
-        result = ocr.ocr(img_np, cls=True)
-        if not result or not result[0]:
+        try:
+            import pytesseract
+            from PIL import Image
+
+            pytesseract.pytesseract.tesseract_cmd = _TESSERACT_CMD
+
+            img = Image.open(BytesIO(file_bytes))
+            text = pytesseract.image_to_string(img, lang="chi_sim+eng")
+            return text.strip()
+        except Exception as e:
+            logger.error(f"Tesseract OCR 失败: {e}")
             return ""
-        lines = []
-        for line in result[0]:
-            text = line[1][0] if len(line) > 1 and len(line[1]) > 0 else ""
-            if text.strip():
-                lines.append(text.strip())
-        return "\n".join(lines)
 
     try:
         text = await asyncio.to_thread(_run)
-        if not text.strip():
-            logger.info("PaddleOCR 未识别到文字，使用 mock 兜底")
-            return _mock_ocr_result()
-        return text
+        if text:
+            return text
     except Exception as e:
-        logger.error(f"PaddleOCR 执行异常: {e}")
-        return _mock_ocr_result()
+        logger.error(f"Tesseract 线程异常: {e}")
+
+    logger.info("Tesseract 无结果，使用 mock 兜底")
+    return _mock_ocr_result()
 
 
 def _mock_ocr_result() -> str:
@@ -74,6 +57,8 @@ async def extract_text_from_pdf(file_bytes: bytes) -> str:
                 text_parts.append(t.strip())
         if text_parts:
             return "\n\n".join(text_parts)
+    except ImportError:
+        logger.warning("PyPDF2 未安装")
     except Exception as e:
         logger.warning(f"PyPDF2 提取失败: {e}")
 
