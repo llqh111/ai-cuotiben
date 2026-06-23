@@ -4,8 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import User, Subject, KnowledgePoint, QuestionPattern, WrongQuestion
 from app.core.security import get_current_user
-from app.services.ocr_service import extract_text_from_image
+from app.services.ocr_service import extract_text_from_image, extract_text_from_pdf
 from app.services import ai_service
+from app.services.upload_pipeline import split_questions
 
 router = APIRouter()
 ALLOWED = {"image/jpeg", "image/png", "application/pdf"}
@@ -54,19 +55,34 @@ async def upload_question(file: UploadFile = File(...), student_answer: str = ""
     if file.content_type not in ALLOWED:
         raise HTTPException(status_code=400, detail="仅支持 jpg/png/pdf")
     file_bytes = await file.read()
-    ocr_text = await extract_text_from_image(file_bytes)
-    parsed = await ai_service.parse_question(ocr_text, student_answer)
-    if not parsed:
-        q = WrongQuestion(user_id=user.id, subject_id=1, ocr_text=ocr_text,
-                          image_url=file.filename, status="pending", mastery_level="new")
-        db.add(q); await db.commit(); await db.refresh(q)
-        return {"status": "partial", "message": "AI 分析失败，已保留原文待重试", "data": {"id": q.id}}
-    existing_kps = (await db.execute(select(KnowledgePoint.name).where(KnowledgePoint.user_id == user.id))).scalars().all()
-    existing_pats = (await db.execute(select(QuestionPattern.name).where(QuestionPattern.user_id == user.id))).scalars().all()
-    classified = await ai_service.classify_question(
-        parsed.get("question_content", ocr_text), parsed.get("correct_answer", ""), student_answer,
-        list(existing_kps), list(existing_pats))
-    q = await persist_analyzed_question(db, user.id, ocr_text, file.filename, parsed, classified or {})
-    return {"status": "success", "data": {
-        "id": q.id, "subject": parsed.get("subject"), "knowledge_point_id": q.knowledge_point_id,
-        "question_content": q.question_content, "analysis": q.error_analysis, "answer": q.correct_answer}}
+    if file.content_type == "application/pdf":
+        ocr_text = await extract_text_from_pdf(file_bytes)
+    else:
+        ocr_text = await extract_text_from_image(file_bytes)
+
+    # AI 拆分多题
+    splits = await split_questions(ocr_text)
+
+    # 逐题分析并落库
+    created = []
+    for item in splits:
+        single_ocr = item.get("content", ocr_text)
+        parsed = await ai_service.parse_question(single_ocr, student_answer)
+        if not parsed:
+            q = WrongQuestion(user_id=user.id, subject_id=1, ocr_text=single_ocr,
+                              image_url=file.filename, status="pending", mastery_level="new")
+            db.add(q); await db.flush()
+            created.append({"id": q.id, "status": "pending"})
+            continue
+        existing_kps = (await db.execute(select(KnowledgePoint.name).where(
+            KnowledgePoint.user_id == user.id))).scalars().all()
+        existing_pats = (await db.execute(select(QuestionPattern.name).where(
+            QuestionPattern.user_id == user.id))).scalars().all()
+        classified = await ai_service.classify_question(
+            parsed.get("question_content", single_ocr), parsed.get("correct_answer", ""),
+            student_answer, list(existing_kps), list(existing_pats))
+        q = await persist_analyzed_question(db, user.id, single_ocr, file.filename, parsed, classified or {})
+        created.append({"id": q.id, "status": "success", "question_content": q.question_content})
+
+    await db.commit()
+    return {"status": "success", "data": {"questions": created, "total": len(created)}}
