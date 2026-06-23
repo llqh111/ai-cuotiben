@@ -6,6 +6,16 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadSmallQuestion, uploadBigQuestion, uploadText, useAuthGuard, ApiError, SUBJECTS } from "@/lib/api";
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+function checkFileSize(file: File): boolean {
+  if (file.size > MAX_FILE_SIZE) {
+    alert(`文件 "${file.name}" 超过 10MB 限制，请压缩后上传。`);
+    return false;
+  }
+  return true;
+}
+
 export default function UploadPage() {
   useAuthGuard();
   const router = useRouter();
@@ -145,8 +155,11 @@ export default function UploadPage() {
 
                 {/* OCR 图（必传） */}
                 <div className="flex items-center gap-4">
-                  <input type="file" accept="image/*" className="hidden" ref={ocrInputRef}
-                    onChange={(e) => setOcrFile(e.target.files?.[0] || null)} />
+                  <input type="file" accept="image/*" capture="environment" className="hidden" ref={ocrInputRef}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && checkFileSize(f)) setOcrFile(f);
+                    }} />
                   <button onClick={() => ocrInputRef.current?.click()}
                     className="flex items-center gap-2 rounded-xl border-2 border-dashed border-blue-200 px-4 py-3 text-sm font-medium text-blue-600 hover:border-blue-400 hover:bg-blue-50/50 transition-colors dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/30">
                     <FileImage size={18} /> {ocrFile ? ocrFile.name : "选择 OCR 识别图（必选）"}
@@ -160,7 +173,10 @@ export default function UploadPage() {
                 {/* 展示配图（可选） */}
                 <div className="flex items-center gap-4">
                   <input type="file" accept="image/*" className="hidden" ref={displayInputRef}
-                    onChange={(e) => setDisplayFile(e.target.files?.[0] || null)} />
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && checkFileSize(f)) setDisplayFile(f);
+                    }} />
                   <button onClick={() => displayInputRef.current?.click()}
                     className="flex items-center gap-2 rounded-xl border-2 border-dashed border-zinc-200 px-4 py-3 text-sm text-zinc-500 hover:border-zinc-400 hover:bg-zinc-50 transition-colors dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900/50">
                     <Image size={18} /> {displayFile ? displayFile.name : "展示配图（可选，不识别）"}
@@ -202,8 +218,11 @@ export default function UploadPage() {
 
                 {/* 题目图（必传） */}
                 <div className="flex items-center gap-4">
-                  <input type="file" accept="image/*" className="hidden" ref={bigImageRef}
-                    onChange={(e) => setBigImage(e.target.files?.[0] || null)} />
+                  <input type="file" accept="image/*" capture="environment" className="hidden" ref={bigImageRef}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && checkFileSize(f)) setBigImage(f);
+                    }} />
                   <button onClick={() => bigImageRef.current?.click()}
                     className="flex items-center gap-2 rounded-xl border-2 border-dashed border-amber-200 px-4 py-3 text-sm font-medium text-amber-600 hover:border-amber-400 hover:bg-amber-50/50 transition-colors dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/30">
                     <FileImage size={18} /> {bigImage ? bigImage.name : "选择题目图片（必选）"}
@@ -258,7 +277,10 @@ export default function UploadPage() {
                 {/* 可选图片 */}
                 <div className="flex items-center gap-4">
                   <input type="file" accept="image/*" className="hidden" ref={textImageRef}
-                    onChange={(e) => setTextImage(e.target.files?.[0] || null)} />
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f && checkFileSize(f)) setTextImage(f);
+                    }} />
                   <button onClick={() => textImageRef.current?.click()}
                     className="flex items-center gap-2 rounded-xl border-2 border-dashed border-zinc-200 px-4 py-3 text-sm text-zinc-500 hover:border-zinc-400 hover:bg-zinc-50 transition-colors dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900/50">
                     <Image size={18} /> {textImage ? textImage.name : "原图存档（可选）"}
