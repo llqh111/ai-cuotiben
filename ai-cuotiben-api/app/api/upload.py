@@ -33,8 +33,13 @@ async def _get_or_create_pattern(db, user_id, kp_id, name) -> QuestionPattern:
         pat = QuestionPattern(user_id=user_id, knowledge_point_id=kp_id, name=name); db.add(pat); await db.flush()
     return pat
 
-async def persist_analyzed_question(db, user_id, ocr_text, image_url, parsed, classified) -> WrongQuestion:
-    subj = await _get_or_create_subject(db, parsed.get("subject", "数学"))
+async def persist_analyzed_question(db, user_id, ocr_text, image_url, parsed, classified, subject_id=None) -> WrongQuestion:
+    if subject_id:
+        subj = (await db.execute(select(Subject).where(Subject.id == subject_id))).scalars().first()
+        if subj is None:
+            subj = await _get_or_create_subject(db, parsed.get("subject", "数学"))
+    else:
+        subj = await _get_or_create_subject(db, parsed.get("subject", "数学"))
     kp_name = classified.get("matched_knowledge_point") or parsed.get("knowledge_point_name") or "未分类"
     kp = await _get_or_create_kp(db, user_id, subj.id, kp_name)
     pat_name = classified.get("matched_question_pattern") or "未分类题型"
@@ -51,6 +56,7 @@ async def persist_analyzed_question(db, user_id, ocr_text, image_url, parsed, cl
 
 @router.post("/")
 async def upload_question(file: UploadFile = File(...), student_answer: str = "",
+                          subject_id: int = None,
                           db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     if file.content_type not in ALLOWED:
         raise HTTPException(status_code=400, detail="仅支持 jpg/png/pdf")
@@ -69,7 +75,7 @@ async def upload_question(file: UploadFile = File(...), student_answer: str = ""
         single_ocr = item.get("content", ocr_text)
         parsed = await ai_service.parse_question(single_ocr, student_answer)
         if not parsed:
-            q = WrongQuestion(user_id=user.id, subject_id=1, ocr_text=single_ocr,
+            q = WrongQuestion(user_id=user.id, subject_id=subject_id or 1, ocr_text=single_ocr,
                               image_url=file.filename, status="pending", mastery_level="new")
             db.add(q); await db.flush()
             created.append({"id": q.id, "status": "pending"})
@@ -81,7 +87,7 @@ async def upload_question(file: UploadFile = File(...), student_answer: str = ""
         classified = await ai_service.classify_question(
             parsed.get("question_content", single_ocr), parsed.get("correct_answer", ""),
             student_answer, list(existing_kps), list(existing_pats))
-        q = await persist_analyzed_question(db, user.id, single_ocr, file.filename, parsed, classified or {})
+        q = await persist_analyzed_question(db, user.id, single_ocr, file.filename, parsed, classified or {}, subject_id=subject_id)
         created.append({"id": q.id, "status": "success", "question_content": q.question_content})
 
     await db.commit()

@@ -5,8 +5,9 @@ import { PremiumCard } from "@/components/ui/PremiumCard";
 import { CalendarBlank, Palette, BookBookmark, Check } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useAuthGuard, getProfile, updateProfile } from "@/lib/api";
+import { useTheme } from "@/components/ui/ThemeProvider";
 
-const THEMES = [
+const THEMES: { key: "light" | "dark" | "system"; label: string }[] = [
   { key: "system", label: "跟随系统" },
   { key: "light", label: "浅色模式" },
   { key: "dark", label: "深色模式" },
@@ -14,8 +15,8 @@ const THEMES = [
 
 export default function SettingsPage() {
   useAuthGuard();
+  const { theme, setTheme } = useTheme();
   const [examDate, setExamDate] = useState("");
-  const [theme, setTheme] = useState("system");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -23,7 +24,6 @@ export default function SettingsPage() {
     getProfile()
       .then((p) => {
         if (p.exam_date) setExamDate(p.exam_date);
-        if (p.theme_preference) setTheme(p.theme_preference);
       })
       .catch(() => {});
   }, []);

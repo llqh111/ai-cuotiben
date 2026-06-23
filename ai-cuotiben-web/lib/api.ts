@@ -100,10 +100,11 @@ export interface UploadResult {
   total: number;
 }
 
-export async function uploadQuestion(file: File): Promise<UploadResult> {
+export async function uploadQuestion(file: File, subjectId?: number): Promise<UploadResult> {
   const fd = new FormData();
   fd.append("file", file);
-  return apiFetch<UploadResult>("/api/upload/", { method: "POST", body: fd });
+  const url = subjectId ? `/api/upload/?subject_id=${subjectId}` : "/api/upload/";
+  return apiFetch<UploadResult>(url, { method: "POST", body: fd });
 }
 
 // ---- 科目（后端 seed 顺序固定，前端按 id 映射名称）----

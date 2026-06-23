@@ -4,12 +4,13 @@ import { Navbar } from "@/components/ui/Navbar";
 import { Camera, FileImage, FilePdf, CircleNotch } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { uploadQuestion, useAuthGuard, ApiError } from "@/lib/api";
+import { uploadQuestion, useAuthGuard, ApiError, SUBJECTS } from "@/lib/api";
 
 export default function UploadPage() {
   useAuthGuard();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [subjectId, setSubjectId] = useState(2); // 默认数学
   const router = useRouter();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,7 +20,7 @@ export default function UploadPage() {
     setIsUploading(true);
     try {
       // 带 JWT 调 /api/upload/，AI 两轮分析后跳详情页
-      const data = await uploadQuestion(file);
+      const data = await uploadQuestion(file, subjectId);
       const firstQ = data.questions?.[0];
       if (firstQ) {
         router.push(`/question/${firstQ.id}`);
@@ -61,6 +62,33 @@ export default function UploadPage() {
           <p className="mx-auto mt-4 max-w-lg text-zinc-500 dark:text-zinc-400">
             上传图片或 PDF，AI 将自动识别题目内容、题型并进行错因分析。
           </p>
+        </motion.div>
+
+        {/* 科目选择器 */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
+          className="mt-10 flex justify-center"
+        >
+          <div className="inline-flex items-center gap-3 rounded-full border border-zinc-200 bg-white px-5 py-2.5 dark:border-zinc-700 dark:bg-zinc-800/50">
+            <span className="text-sm text-zinc-500">科目：</span>
+            <div className="flex gap-1">
+              {SUBJECTS.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setSubjectId(s.id)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                    subjectId === s.id
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                      : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                  }`}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
         {/* 隐藏的文件上传组件 */}
