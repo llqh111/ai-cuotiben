@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base
 import app.models  # to ensure models are registered
-from app.api import upload, questions, stats, auth
+from app.api import upload, questions, stats, auth, review
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,6 +33,7 @@ app.include_router(upload.router, prefix="/api/upload", tags=["Upload"])
 app.include_router(questions.router, prefix="/api/questions", tags=["Questions"])
 app.include_router(stats.router, prefix="/api/stats", tags=["Statistics"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(review.router, prefix="/api/review", tags=["Review"])
 
 @app.get("/")
 async def root():
