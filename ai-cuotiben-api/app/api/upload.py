@@ -18,6 +18,7 @@ from app.services import ai_service
 from app.services.gemini_service import recognize_image
 from app.services.upload_pipeline import split_questions, analyze_pdf_questions
 from app.services.ocr_service import extract_text_from_pdf
+from app.schemas.question import ImportBatch
 
 logger = logging.getLogger(__name__)
 
@@ -457,4 +458,57 @@ async def confirm_pdf_questions(
             "saved_ids": saved_ids,
             "first_question_id": saved_ids[0] if saved_ids else None,
         }
+    }
+
+
+# ────────────────────────────────────────────────
+#  入口六：导入成品错题（外部 AI 已分析，绕开 DeepSeek）
+# ────────────────────────────────────────────────
+
+@router.post("/import")
+async def import_questions(
+    body: ImportBatch,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """导入已分析好的成品错题，直接落库，不调用 DeepSeek。
+
+    供外部 AI（Claude 等）输出完整字段后批量导入。每题需指定 subject_id(1-6)；
+    知识点 / 题型按名称自动匹配已有或新建。状态与正常上传一致（analyzed / new），
+    自动进入间隔复习队列。
+    """
+    if not body.questions:
+        raise HTTPException(400, "至少导入一道题")
+
+    saved_ids = []
+    for item in body.questions:
+        subj = (await db.execute(
+            select(Subject).where(Subject.id == item.subject_id))).scalars().first()
+        if subj is None:
+            raise HTTPException(400, f"科目 {item.subject_id} 不存在")
+
+        kp = await _get_or_create_kp(db, user.id, subj.id, item.knowledge_point_name or "未分类")
+        pat = await _get_or_create_pattern(db, user.id, kp.id, item.question_pattern_name or "未分类题型")
+
+        wq = WrongQuestion(
+            user_id=user.id, subject_id=subj.id,
+            knowledge_point_id=kp.id, question_pattern_id=pat.id,
+            image_url=item.image_url or "",
+            ocr_text="",
+            question_content=item.question_content,
+            question_type=item.question_type or "essay",
+            correct_answer=item.correct_answer,
+            student_answer=item.student_answer,
+            solution_steps=item.solution_steps,
+            error_analysis=item.error_analysis,
+            improvement_tips=item.improvement_tips,
+            status="analyzed", mastery_level="new",
+        )
+        db.add(wq); await db.flush()
+        saved_ids.append(wq.id)
+
+    await db.commit()
+    return {
+        "status": "success",
+        "data": {"saved_count": len(saved_ids), "saved_ids": saved_ids},
     }
