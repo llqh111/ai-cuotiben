@@ -1,15 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.database import engine, Base
+from app.database import engine, Base, AsyncSessionLocal
 import app.models  # to ensure models are registered
+from app.core.seed import seed_subjects
 from app.api import upload, questions, stats, auth, review, export, sprint, generate, graph, notify
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create tables
+    # Startup: 建表 + 预置 6 个科目（id 1-6，与前端 SUBJECTS 对齐，避免上传时按名乱建导致科目错位）
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    async with AsyncSessionLocal() as session:
+        await seed_subjects(session)
     yield
     # Shutdown
 
