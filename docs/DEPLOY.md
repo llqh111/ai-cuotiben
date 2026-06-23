@@ -51,7 +51,7 @@ git push -u origin main
 
    | Key | Value |
    |-----|-------|
-   | `DEEPSEEK_API_KEY` | `sk-32cd3ec60b464a9caef8234527da1d45` |
+   | `DEEPSEEK_API_KEY` | `你的DeepSeek API Key（在 platform.deepseek.com 获取）` |
    | `JWT_SECRET` | 随机生成一个（如 `cuotiben-2026-secret-xyz`） |
 
 5. 点 **Create Web Service**

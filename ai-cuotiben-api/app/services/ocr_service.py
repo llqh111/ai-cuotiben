@@ -15,9 +15,17 @@ else:
     _TESSERACT_CMD = "tesseract"
 
 _TESSDATA_DIR = os.path.join(os.path.expanduser("~"), ".tesseract", "tessdata")
-# 也检查 Linux 系统路径
+
+# 也检查项目本地 tessdata（Render build 时下载）
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_LOCAL_TESSDATA = os.path.join(_PROJECT_ROOT, "tessdata")
+
 if not os.path.isdir(_TESSDATA_DIR):
-    for candidate in ["/usr/share/tesseract-ocr/5/tessdata", "/usr/share/tesseract-ocr/tessdata"]:
+    for candidate in [
+        _LOCAL_TESSDATA,
+        "/usr/share/tesseract-ocr/5/tessdata",
+        "/usr/share/tesseract-ocr/tessdata",
+    ]:
         if os.path.isdir(candidate):
             _TESSDATA_DIR = candidate
             break
