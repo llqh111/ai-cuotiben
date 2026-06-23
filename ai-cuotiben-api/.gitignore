@@ -1,0 +1,10 @@
+# Secrets — 绝不提交
+.env
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# 本地数据库
+*.db

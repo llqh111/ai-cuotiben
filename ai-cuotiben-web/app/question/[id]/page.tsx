@@ -6,7 +6,15 @@ import { Button } from "@/components/ui/Button";
 import { DownloadSimple, Sparkle, ArrowLeft, CircleNotch } from "@phosphor-icons/react";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
-import { apiFetch, useAuthGuard, subjectName } from "@/lib/api";
+import {
+  apiFetch,
+  useAuthGuard,
+  subjectName,
+  generateSimilar,
+  downloadPdf,
+  ApiError,
+  type PracticeQuestion,
+} from "@/lib/api";
 
 interface QuestionDetail {
   subject_id: number;
@@ -21,12 +29,42 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   const [data, setData] = useState<QuestionDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // AI 相似题状态
+  const [similar, setSimilar] = useState<PracticeQuestion[]>([]);
+  const [genLoading, setGenLoading] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
   useEffect(() => {
     apiFetch<QuestionDetail>(`/api/questions/${id}`)
       .then(setData)
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleGenerate() {
+    setGenLoading(true);
+    setGenError(null);
+    try {
+      const items = await generateSimilar(id);
+      setSimilar((prev) => [...prev, ...items]);
+    } catch (e) {
+      setGenError(e instanceof ApiError ? e.message : "生成失败，请稍后再试");
+    } finally {
+      setGenLoading(false);
+    }
+  }
+
+  async function handleExport(withAnswer: boolean) {
+    setExporting(true);
+    try {
+      await downloadPdf({ title: "错题导出", with_answer: withAnswer });
+    } catch {
+      // 下载失败静默；按钮恢复可点
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -113,7 +151,45 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
                   根据这道题的考点和你的错因，生成 3 道难度相近的练习题。
                 </p>
               </div>
-              <Button icon className="w-full justify-center">生成相似题</Button>
+              <Button
+                icon
+                onClick={handleGenerate}
+                disabled={genLoading}
+                className="w-full justify-center"
+              >
+                {genLoading ? "生成中…" : "生成相似题"}
+              </Button>
+              {genError && (
+                <p className="text-sm text-red-500">{genError}</p>
+              )}
+              {similar.length > 0 && (
+                <div className="flex flex-col gap-4">
+                  {similar.map((p, i) => (
+                    <div
+                      key={p.id}
+                      className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800/50 dark:bg-zinc-900/30"
+                    >
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        练习题 {i + 1}
+                      </p>
+                      <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">
+                        {p.content}
+                      </p>
+                      {p.answer && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-xs text-zinc-400">
+                            查看答案与解析
+                          </summary>
+                          <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-500">
+                            {p.answer}
+                            {p.solution ? `\n\n${p.solution}` : ""}
+                          </p>
+                        </details>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </PremiumCard>
 
             <PremiumCard delay={0.3} className="md:-mt-2" coreClassName="flex flex-col gap-6">
@@ -123,10 +199,27 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
                 </div>
                 <h3 className="text-xl font-semibold tracking-tight">导出为 PDF</h3>
                 <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  将此题与你的分析笔记导出为可打印格式。
+                  将你的错题与分析笔记导出为可打印的 PDF。
                 </p>
               </div>
-              <Button icon className="w-full justify-center bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700">导出无答案版</Button>
+              <div className="flex flex-col gap-3">
+                <Button
+                  icon
+                  onClick={() => handleExport(true)}
+                  disabled={exporting}
+                  className="w-full justify-center"
+                >
+                  {exporting ? "导出中…" : "导出含答案版"}
+                </Button>
+                <Button
+                  icon
+                  onClick={() => handleExport(false)}
+                  disabled={exporting}
+                  className="w-full justify-center bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                >
+                  导出练习版（无答案）
+                </Button>
+              </div>
             </PremiumCard>
           </div>
 

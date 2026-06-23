@@ -1,16 +1,28 @@
 import asyncio
 import logging
 import os
+import platform
 from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
-_TESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-if not os.path.exists(_TESSERACT_CMD):
+# 跨平台 Tesseract 路径
+if platform.system() == "Windows":
+    _TESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if not os.path.exists(_TESSERACT_CMD):
+        _TESSERACT_CMD = "tesseract"
+else:
     _TESSERACT_CMD = "tesseract"
 
-_TESSDATA_DIR = os.path.expanduser(r"~\.tesseract\tessdata")
-os.environ["TESSDATA_PREFIX"] = _TESSDATA_DIR  # 覆盖外部环境变量，确保使用 Windows 路径
+_TESSDATA_DIR = os.path.join(os.path.expanduser("~"), ".tesseract", "tessdata")
+# 也检查 Linux 系统路径
+if not os.path.isdir(_TESSDATA_DIR):
+    for candidate in ["/usr/share/tesseract-ocr/5/tessdata", "/usr/share/tesseract-ocr/tessdata"]:
+        if os.path.isdir(candidate):
+            _TESSDATA_DIR = candidate
+            break
+
+os.environ["TESSDATA_PREFIX"] = _TESSDATA_DIR
 
 
 async def extract_text_from_image(file_bytes: bytes) -> str:

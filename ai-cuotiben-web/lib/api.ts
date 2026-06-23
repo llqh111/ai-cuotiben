@@ -125,6 +125,188 @@ export function subjectName(id: number | string): string {
   return SUBJECTS.find((s) => s.id === n)?.name ?? String(id);
 }
 
+// ---- 用户资料（驱动倒计时 + 冲刺）----
+
+export interface Profile {
+  user_id: number;
+  nickname: string;
+  exam_date: string | null;
+  theme_preference: string | null;
+}
+
+export function getProfile(): Promise<Profile> {
+  return apiFetch<Profile>("/api/auth/me");
+}
+
+export function updateProfile(body: {
+  exam_date?: string;
+  theme_preference?: string;
+}): Promise<Profile> {
+  return apiFetch<Profile>("/api/auth/profile", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+// ---- 统计 ----
+
+export interface TrendPoint {
+  date: string;
+  new: number;
+  mastered: number;
+}
+
+export function getTrends(days = 30): Promise<TrendPoint[]> {
+  return apiFetch<TrendPoint[]>(`/api/stats/trends?days=${days}`);
+}
+
+export function getStreak(): Promise<{ streak: number }> {
+  return apiFetch<{ streak: number }>("/api/stats/streak");
+}
+
+export function getDailyCompletion(): Promise<{
+  due_total: number;
+  completed: number;
+  rate: number;
+}> {
+  return apiFetch("/api/stats/daily-completion");
+}
+
+export interface WeakPoint {
+  knowledge_point: string;
+  count: number;
+  mastery_rate?: number;
+}
+
+export function getWeakPoints(): Promise<WeakPoint[]> {
+  return apiFetch<WeakPoint[]>("/api/stats/weak-points");
+}
+
+export interface LearningReport {
+  period: string;
+  span_days: number;
+  start: string;
+  end: string;
+  new_questions: number;
+  mastered: number;
+  reviews: number;
+  accuracy: number;
+  weak_points: WeakPoint[];
+}
+
+export function getReport(period: "week" | "month" = "week"): Promise<LearningReport> {
+  return apiFetch<LearningReport>(`/api/stats/report?period=${period}`);
+}
+
+// ---- 考前冲刺 ----
+
+export interface SprintQuestion {
+  id: number;
+  subject_id: number;
+  question_content: string | null;
+  question_type: string;
+  correct_answer: string | null;
+  solution_steps: string | null;
+  mastery_level: string;
+}
+
+export interface SprintPlan {
+  days_remaining: number;
+  phase: string;
+  daily_quota: number;
+  unmastered_total: number;
+  exam_date: string | null;
+  questions: SprintQuestion[];
+}
+
+export function getSprintPlan(): Promise<SprintPlan> {
+  return apiFetch<SprintPlan>("/api/sprint/plan");
+}
+
+// ---- AI 相似题 ----
+
+export interface PracticeQuestion {
+  id: number;
+  source_question_id: number;
+  content: string;
+  answer: string | null;
+  solution: string | null;
+  user_result: string;
+}
+
+export function listSimilar(questionId: number | string): Promise<PracticeQuestion[]> {
+  return apiFetch<PracticeQuestion[]>(`/api/generate/similar/${questionId}`);
+}
+
+export function generateSimilar(questionId: number | string): Promise<PracticeQuestion[]> {
+  return apiFetch<PracticeQuestion[]>(`/api/generate/similar/${questionId}`, {
+    method: "POST",
+  });
+}
+
+// ---- 知识图谱 ----
+
+export interface GraphNode {
+  id: number;
+  name: string;
+  symbolSize: number;
+  count: number;
+  itemStyle?: { color: string };
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  relation_type?: string;
+}
+
+export function getGraph(subjectId: number | string): Promise<{
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}> {
+  return apiFetch(`/api/graph/${subjectId}`);
+}
+
+export function rebuildGraph(subjectId: number | string): Promise<{ relations_built: number }> {
+  return apiFetch(`/api/graph/${subjectId}/rebuild`, { method: "POST" });
+}
+
+// ---- PDF 导出（二进制，单独处理，不能走 apiFetch 的 JSON 解析）----
+
+export interface ExportOptions {
+  subject_id?: number;
+  knowledge_point_id?: number;
+  question_pattern_id?: number;
+  mastery_level?: string;
+  with_answer?: boolean;
+  title?: string;
+}
+
+export async function downloadPdf(opts: ExportOptions): Promise<void> {
+  const token = getToken();
+  const headers = new Headers({ "Content-Type": "application/json" });
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const res = await fetch(`${API_BASE}/api/export/pdf`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(opts),
+  });
+  if (res.status === 401) {
+    clearToken();
+    throw new ApiError("登录已过期，请重新登录", 401);
+  }
+  if (!res.ok) throw new ApiError(`导出失败 (${res.status})`, res.status);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${opts.title ?? "错题导出"}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ---- 鉴权守卫：无 token 跳登录 ----
 
 export function useAuthGuard(): void {
