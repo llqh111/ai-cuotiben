@@ -4,7 +4,7 @@ import { Navbar } from "@/components/ui/Navbar";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { CalendarBlank, Palette, BookBookmark, Check } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { useAuthGuard, getProfile, updateProfile } from "@/lib/api";
+import { useAuthGuard, getProfile, updateProfile, SUBJECTS } from "@/lib/api";
 import { useTheme } from "@/components/ui/ThemeProvider";
 
 const THEMES: { key: "light" | "dark" | "system"; label: string }[] = [
@@ -19,16 +19,18 @@ export default function SettingsPage() {
   const [examDate, setExamDate] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [subjectPrefs, setSubjectPrefs] = useState<string>("1,2,3,4,5,6");
 
   useEffect(() => {
     getProfile()
       .then((p) => {
         if (p.exam_date) setExamDate(p.exam_date);
+      if (p.subject_prefs) setSubjectPrefs(p.subject_prefs);
       })
       .catch(() => {});
   }, []);
 
-  async function save(next: { exam_date?: string; theme_preference?: string }) {
+  async function save(next: { exam_date?: string; theme_preference?: string; subject_prefs?: string }) {
     setSaving(true);
     setSaved(false);
     try {
@@ -121,7 +123,7 @@ export default function SettingsPage() {
             </div>
           </PremiumCard>
 
-          {/* Subjects Management (本地展示，后端未提供科目开关存储) */}
+          {/* Subjects Management */}
           <PremiumCard delay={0.3} className="w-full">
             <div className="flex items-start gap-6">
               <div className="mt-1 h-10 w-10 shrink-0 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
@@ -133,17 +135,36 @@ export default function SettingsPage() {
                   关闭不需要的科目，它们将不会出现在仪表盘和复习计划中。
                 </p>
                 <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {["语文", "数学", "英语", "物理", "化学", "生物"].map((subject, i) => (
-                    <label
-                      key={subject}
-                      className="flex cursor-pointer items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 p-4 transition-all hover:bg-white dark:border-zinc-800/50 dark:bg-zinc-900/30 dark:hover:bg-[#0a0a0a]"
-                    >
-                      <span className="font-medium text-zinc-900 dark:text-zinc-100">{subject}</span>
-                      <div className={`h-5 w-9 rounded-full p-1 transition-colors ${i < 4 ? "bg-zinc-900 dark:bg-white" : "bg-zinc-200 dark:bg-zinc-800"}`}>
-                        <div className={`h-3 w-3 rounded-full transition-transform ${i < 4 ? "translate-x-4 bg-white dark:bg-zinc-900" : "bg-white dark:bg-zinc-500"}`} />
-                      </div>
-                    </label>
-                  ))}
+                  {SUBJECTS.map((subject) => {
+  const enabled = subjectPrefs.split(",").includes(String(subject.id));
+  const active = enabled;
+  return (
+    <label
+      key={subject.id}
+      className={`flex cursor-pointer items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 p-4 transition-all hover:bg-white dark:border-zinc-800/50 dark:bg-zinc-900/30 dark:hover:bg-[#0a0a0a] ${saving ? "pointer-events-none opacity-60" : ""}`}
+    >
+      <span className="font-medium text-zinc-900 dark:text-zinc-100">{subject.name}</span>
+      <input
+        type="checkbox"
+        className="sr-only"
+        checked={active}
+        disabled={saving}
+        onChange={() => {
+          const ids = subjectPrefs.split(",").filter(Boolean);
+          const newIds = active
+            ? ids.filter((id) => id !== String(subject.id))
+            : [...ids, String(subject.id)].sort((a, b) => Number(a) - Number(b));
+          const newVal = newIds.join(",") || SUBJECTS.map(s => s.id).join(",");
+          setSubjectPrefs(newVal);
+          save({ subject_prefs: newVal });
+        }}
+      />
+      <div className={`h-5 w-9 rounded-full p-1 transition-colors ${active ? "bg-zinc-900 dark:bg-white" : "bg-zinc-200 dark:bg-zinc-800"}`}>
+        <div className={`h-3 w-3 rounded-full bg-white dark:bg-zinc-500 transition-transform ${active ? "translate-x-4 dark:bg-zinc-900" : ""}`} />
+      </div>
+    </label>
+  );
+})}
                 </div>
               </div>
             </div>

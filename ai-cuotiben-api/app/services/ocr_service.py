@@ -1,52 +1,39 @@
 import asyncio
 import logging
-import os
-import platform
 from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
-# 跨平台 Tesseract 路径
-if platform.system() == "Windows":
-    _TESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    if not os.path.exists(_TESSERACT_CMD):
-        _TESSERACT_CMD = "tesseract"
-else:
-    _TESSERACT_CMD = "tesseract"
+# EasyOCR reader --- lazy init, avoid loading model at startup
+_reader = None
 
-_TESSDATA_DIR = os.path.join(os.path.expanduser("~"), ".tesseract", "tessdata")
 
-# 也检查项目本地 tessdata（Render build 时下载）
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_LOCAL_TESSDATA = os.path.join(_PROJECT_ROOT, "tessdata")
-
-if not os.path.isdir(_TESSDATA_DIR):
-    for candidate in [
-        _LOCAL_TESSDATA,
-        "/usr/share/tesseract-ocr/5/tessdata",
-        "/usr/share/tesseract-ocr/tessdata",
-    ]:
-        if os.path.isdir(candidate):
-            _TESSDATA_DIR = candidate
-            break
-
-os.environ["TESSDATA_PREFIX"] = _TESSDATA_DIR
+def _get_reader():
+    """Lazy-load EasyOCR reader (first call downloads ~200MB model)."""
+    global _reader
+    if _reader is None:
+        import easyocr
+        _reader = easyocr.Reader(['ch_sim', 'en'], gpu=False)
+    return _reader
 
 
 async def extract_text_from_image(file_bytes: bytes) -> str:
-    """对图片字节执行 OCR，优先用 Tesseract 中文识别，失败则 mock 兜底。"""
+    """OCR image bytes with EasyOCR Chinese recognition, fallback to mock on failure."""
     def _run():
         try:
-            import pytesseract
+            import numpy as np
             from PIL import Image
 
-            pytesseract.pytesseract.tesseract_cmd = _TESSERACT_CMD
-
+            reader = _get_reader()
             img = Image.open(BytesIO(file_bytes))
-            text = pytesseract.image_to_string(img, lang="chi_sim+eng")
+            # EasyOCR accepts numpy array
+            result = reader.readtext(np.array(img))
+            # result format: [[bbox, text, confidence], ...]
+            lines = [item[1] for item in result if item[2] > 0.3]
+            text = '\n'.join(lines)
             return text.strip()
         except Exception as e:
-            logger.error(f"Tesseract OCR 失败: {e}")
+            logger.error(f"EasyOCR failed: {e}")
             return ""
 
     try:
@@ -54,9 +41,9 @@ async def extract_text_from_image(file_bytes: bytes) -> str:
         if text:
             return text
     except Exception as e:
-        logger.error(f"Tesseract 线程异常: {e}")
+        logger.error(f"EasyOCR thread exception: {e}")
 
-    logger.info("Tesseract 无结果，使用 mock 兜底")
+    logger.info("EasyOCR returned no result, falling back to mock")
     return _mock_ocr_result()
 
 
@@ -65,7 +52,7 @@ def _mock_ocr_result() -> str:
 
 
 async def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """从 PDF 字节中提取文字。有文字层时直接提取，否则返回提示信息。"""
+    """Extract text from PDF bytes. Returns text if text layer exists, otherwise a hint."""
     try:
         import io
         from PyPDF2 import PdfReader
@@ -78,8 +65,8 @@ async def extract_text_from_pdf(file_bytes: bytes) -> str:
         if text_parts:
             return "\n\n".join(text_parts)
     except ImportError:
-        logger.warning("PyPDF2 未安装")
+        logger.warning("PyPDF2 not installed")
     except Exception as e:
-        logger.warning(f"PyPDF2 提取失败: {e}")
+        logger.warning(f"PyPDF2 extraction failed: {e}")
 
     return "[PDF 扫描件 — 暂不支持 OCR，请转为图片后上传]"

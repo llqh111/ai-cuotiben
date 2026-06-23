@@ -142,6 +142,7 @@ export interface Profile {
   nickname: string;
   exam_date: string | null;
   theme_preference: string | null;
+  subject_prefs: string;  // "1,2,3,4,5,6" 逗号分隔的 enabled subject IDs
 }
 
 export function getProfile(): Promise<Profile> {
@@ -151,6 +152,7 @@ export function getProfile(): Promise<Profile> {
 export function updateProfile(body: {
   exam_date?: string;
   theme_preference?: string;
+  subject_prefs?: string;
 }): Promise<Profile> {
   return apiFetch<Profile>("/api/auth/profile", {
     method: "PUT",
