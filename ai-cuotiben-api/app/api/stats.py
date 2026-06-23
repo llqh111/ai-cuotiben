@@ -137,3 +137,35 @@ async def daily_completion(db: AsyncSession = Depends(get_db), user: User = Depe
     due_total = remaining + completed
     rate = round(completed / due_total * 100) if due_total else 0
     return {"status": "success", "data": {"due_total": due_total, "completed": completed, "rate": rate}}
+
+
+@router.get("/report")
+async def report(period: str = "week", db: AsyncSession = Depends(get_db),
+                 user: User = Depends(get_current_user)):
+    """学习报告：周报(7天)/月报(30天)。统计新增、掌握、复习次数、正确率、薄弱知识点。"""
+    span = 30 if period == "month" else 7
+    today = date.today()
+    start = today - timedelta(days=span - 1)
+    rows = (await db.execute(select(WrongQuestion).where(WrongQuestion.user_id == user.id))).scalars().all()
+    new_count = sum(1 for q in rows if (_as_date(q.created_at) or today) >= start)
+    mastered_count = sum(1 for q in rows
+                         if q.mastery_level == "mastered" and (_as_date(q.updated_at) or today) >= start)
+    recs = (await db.execute(select(ReviewRecord).where(ReviewRecord.user_id == user.id))).scalars().all()
+    window_recs = [r for r in recs if (_as_date(r.reviewed_at) or today) >= start]
+    reviews = len(window_recs)
+    correct = sum(1 for r in window_recs if r.is_correct)
+    accuracy = round(correct / reviews * 100) if reviews else 0
+    # 薄弱知识点（窗口内仍未掌握、错题最多 TOP3）
+    agg = defaultdict(int)
+    for q in rows:
+        if q.knowledge_point_id and q.mastery_level != "mastered":
+            agg[q.knowledge_point_id] += 1
+    weak = []
+    for kp_id, cnt in sorted(agg.items(), key=lambda x: -x[1])[:3]:
+        kp = (await db.execute(select(KnowledgePoint).where(KnowledgePoint.id == kp_id))).scalars().first()
+        weak.append({"knowledge_point": kp.name if kp else str(kp_id), "count": cnt})
+    return {"status": "success", "data": {
+        "period": period, "span_days": span,
+        "start": start.isoformat(), "end": today.isoformat(),
+        "new_questions": new_count, "mastered": mastered_count,
+        "reviews": reviews, "accuracy": accuracy, "weak_points": weak}}
