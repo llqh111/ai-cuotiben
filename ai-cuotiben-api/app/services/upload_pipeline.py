@@ -24,7 +24,7 @@ async def split_questions(ocr_text: str) -> list[dict]:
             base_url="https://api.deepseek.com/v1"
         )
         resp = await client.chat.completions.create(
-            model="deepseek-chat",
+            model="deepseek-v4-pro",
             messages=[
                 {"role": "system", "content": SPLIT_SYSTEM},
                 {"role": "user", "content": f"OCR 文本：\n{ocr_text}"}

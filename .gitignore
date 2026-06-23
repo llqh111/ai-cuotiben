@@ -7,3 +7,7 @@ __pycache__/
 node_modules/
 .pytest_cache/
 server.log
+.playwright-mcp/
+.workbuddy/
+overview.md
+=1.7.0

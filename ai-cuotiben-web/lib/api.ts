@@ -93,24 +93,49 @@ export interface UploadItem {
   id: number;
   status: string;
   question_content?: string;
+  image_url?: string;
 }
 
 export interface UploadResult {
   questions: UploadItem[];
   total: number;
+  image_url?: string;
 }
 
-export async function uploadQuestion(file: File, subjectId?: number): Promise<UploadResult> {
+// 小题上传：OCR图(必传) + 展示配图(可选)，Gemini 自动 OCR
+export async function uploadSmallQuestion(
+  ocrImage: File,
+  displayImage: File | null,
+  subjectId?: number,
+): Promise<UploadResult> {
   const fd = new FormData();
-  fd.append("file", file);
-  const url = subjectId ? `/api/upload/?subject_id=${subjectId}` : "/api/upload/";
-  return apiFetch<UploadResult>(url, { method: "POST", body: fd });
+  fd.append("ocr_image", ocrImage);
+  if (displayImage) fd.append("display_image", displayImage);
+  if (subjectId) fd.append("subject_id", String(subjectId));
+  return apiFetch<UploadResult>("/api/upload/small", { method: "POST", body: fd });
 }
 
-export async function uploadText(text: string, subjectId: number): Promise<UploadResult> {
+// 大题上传：题目图(必传) + 外部AI文本(必传)，不自动 OCR
+export async function uploadBigQuestion(
+  image: File,
+  text: string,
+  subjectId?: number,
+): Promise<UploadResult> {
+  const fd = new FormData();
+  fd.append("image", image);
+  fd.append("text", text);
+  if (subjectId) fd.append("subject_id", String(subjectId));
+  return apiFetch<UploadResult>("/api/upload/big-question", { method: "POST", body: fd });
+}
+
+export async function uploadText(text: string, subjectId: number, image?: File | null): Promise<UploadResult> {
+  const fd = new FormData();
+  fd.append("text", text);
+  fd.append("subject_id", String(subjectId));
+  if (image) fd.append("image", image);
   return apiFetch<UploadResult>("/api/upload/text", {
     method: "POST",
-    body: JSON.stringify({ text, subject_id: subjectId }),
+    body: fd,
   });
 }
 

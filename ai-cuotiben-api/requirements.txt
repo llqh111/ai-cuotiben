@@ -16,7 +16,5 @@ httpx>=0.27.0
 reportlab>=4.0.0
 PyPDF2>=3.0.0
 Pillow>=10.0.0
-# easyocr 体积大(含 PyTorch ~800MB)，Render 免费层装不下会 OOM，线上不装。
-# 线上图片 OCR 自动降级为 mock 兜底(不崩)，主用粘贴 AI 识别文本路。
-# 本地需要图片 OCR：手动 pip install easyocr
-# easyocr>=1.7.0
+google-genai>=1.0.0
+# easyocr 已弃用，改用 Gemini 图片识别
