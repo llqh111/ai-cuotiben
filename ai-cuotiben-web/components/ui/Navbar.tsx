@@ -18,7 +18,9 @@ export function Navbar() {
       <nav className="hidden items-center gap-6 text-sm font-medium text-zinc-500 md:flex dark:text-zinc-400">
         <Link href="/dashboard" className="hover:text-zinc-900 transition-colors dark:hover:text-white">仪表盘</Link>
         <Link href="/upload" className="hover:text-zinc-900 transition-colors dark:hover:text-white">录入</Link>
-        <Link href="/review/2" className="hover:text-zinc-900 transition-colors dark:hover:text-white">复习</Link>
+        <Link href="/stats" className="hover:text-zinc-900 transition-colors dark:hover:text-white">统计</Link>
+        <Link href="/sprint" className="hover:text-zinc-900 transition-colors dark:hover:text-white">冲刺</Link>
+        <Link href="/settings" className="hover:text-zinc-900 transition-colors dark:hover:text-white">设置</Link>
       </nav>
       <button
         onClick={() => logout(router)}

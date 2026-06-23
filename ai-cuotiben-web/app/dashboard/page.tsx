@@ -4,7 +4,7 @@ import { Navbar } from "@/components/ui/Navbar";
 import { BookOpen, ChartLineUp, ClockCountdown } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiFetch, useAuthGuard, subjectName } from "@/lib/api";
+import { apiFetch, useAuthGuard, subjectName, getProfile, type Profile } from "@/lib/api";
 
 interface StatsData {
   total_questions: number;
@@ -16,9 +16,11 @@ export default function DashboardPage() {
   useAuthGuard();
   const [stats, setStats] = useState<StatsData>({ total_questions: 0, mastery_rate: 0, subject_distribution: {} });
 
+  const [profile, setProfile] = useState<Profile | null>(null);
+
   useEffect(() => {
-    apiFetch<StatsData>("/api/stats")
-      .then(setStats)
+    Promise.all([apiFetch<StatsData>("/api/stats"), getProfile()])
+      .then(([s, p]) => { setStats(s); setProfile(p); })
       .catch(() => {});
   }, []);
 
@@ -28,7 +30,10 @@ export default function DashboardPage() {
     ? entries.sort((a, b) => b[1] - a[1])[0][0]
     : "2";
 
-  const daysToGaokao = Math.ceil((new Date('2027-06-07').getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+  const examDate = profile?.exam_date ? new Date(profile.exam_date) : null;
+  const daysToGaokao = examDate
+    ? Math.ceil((examDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+    : null;
 
   return (
     <>
@@ -41,10 +46,10 @@ export default function DashboardPage() {
           className="mb-16"
         >
           <h1 className="text-4xl font-semibold tracking-tighter md:text-6xl">
-            欢迎回来，李雷
+            欢迎回来，{profile?.nickname ?? "同学"}
           </h1>
           <p className="mt-4 max-w-xl text-lg text-zinc-500 dark:text-zinc-400">
-            总共录入了 {stats.total_questions} 道错题，距离高考还有 {daysToGaokao} 天。保持节奏。
+            总共录入了 {stats.total_questions} 道错题{daysToGaokao !== null ? `，距离高考还有 ${daysToGaokao} 天` : ""}。保持节奏。
           </p>
         </motion.div>
 
@@ -110,8 +115,17 @@ export default function DashboardPage() {
               <div className="mb-4 text-zinc-400 dark:text-zinc-500">
                 <ClockCountdown size={24} weight="fill" />
               </div>
-              <h3 className="text-3xl font-semibold tracking-tighter">{daysToGaokao} <span className="text-lg text-zinc-400 dark:text-zinc-500">天</span></h3>
-              <p className="mt-1 text-sm font-medium">距离 2027 年高考</p>
+              {daysToGaokao !== null ? (
+                <>
+                  <h3 className="text-3xl font-semibold tracking-tighter">{daysToGaokao} <span className="text-lg text-zinc-400 dark:text-zinc-500">天</span></h3>
+                  <p className="mt-1 text-sm font-medium">距离高考</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-medium">设置高考日期</p>
+                  <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">在设置中开启倒计时</p>
+                </>
+              )}
             </div>
           </motion.div>
 
