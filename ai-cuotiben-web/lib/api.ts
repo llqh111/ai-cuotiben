@@ -107,6 +107,13 @@ export async function uploadQuestion(file: File, subjectId?: number): Promise<Up
   return apiFetch<UploadResult>(url, { method: "POST", body: fd });
 }
 
+export async function uploadText(text: string, subjectId: number): Promise<UploadResult> {
+  return apiFetch<UploadResult>("/api/upload/text", {
+    method: "POST",
+    body: JSON.stringify({ text, subject_id: subjectId }),
+  });
+}
+
 // ---- 科目（后端 seed 顺序固定，前端按 id 映射名称）----
 
 export interface SubjectMeta {

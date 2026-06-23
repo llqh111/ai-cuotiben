@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
@@ -10,6 +11,37 @@ from app.services.upload_pipeline import split_questions
 
 router = APIRouter()
 ALLOWED = {"image/jpeg", "image/png", "application/pdf"}
+
+
+class TextUploadRequest(BaseModel):
+    text: str
+    subject_id: int
+    student_answer: str = ""
+
+
+async def _analyze_and_persist(db, user_id, ocr_text, image_url, student_answer, subject_id=None) -> list[dict]:
+    """分析一段文本并落库。返回 created 列表。"""
+    splits = await split_questions(ocr_text)
+    created = []
+    for item in splits:
+        single_ocr = item.get("content", ocr_text)
+        parsed = await ai_service.parse_question(single_ocr, student_answer)
+        if not parsed:
+            q = WrongQuestion(user_id=user_id, subject_id=subject_id or 1, ocr_text=single_ocr,
+                              image_url=image_url, status="pending", mastery_level="new")
+            db.add(q); await db.flush()
+            created.append({"id": q.id, "status": "pending"})
+            continue
+        existing_kps = (await db.execute(select(KnowledgePoint.name).where(
+            KnowledgePoint.user_id == user_id))).scalars().all()
+        existing_pats = (await db.execute(select(QuestionPattern.name).where(
+            QuestionPattern.user_id == user_id))).scalars().all()
+        classified = await ai_service.classify_question(
+            parsed.get("question_content", single_ocr), parsed.get("correct_answer", ""),
+            student_answer, list(existing_kps), list(existing_pats))
+        q = await persist_analyzed_question(db, user_id, single_ocr, image_url, parsed, classified or {}, subject_id=subject_id)
+        created.append({"id": q.id, "status": "success", "question_content": q.question_content})
+    return created
 
 async def _get_or_create_subject(db: AsyncSession, name: str) -> Subject:
     subj = (await db.execute(select(Subject).where(Subject.name == name))).scalars().first()
@@ -66,29 +98,15 @@ async def upload_question(file: UploadFile = File(...), student_answer: str = ""
     else:
         ocr_text = await extract_text_from_image(file_bytes)
 
-    # AI 拆分多题
-    splits = await split_questions(ocr_text)
+    created = await _analyze_and_persist(db, user.id, ocr_text, file.filename, student_answer, subject_id)
+    await db.commit()
+    return {"status": "success", "data": {"questions": created, "total": len(created)}}
 
-    # 逐题分析并落库
-    created = []
-    for item in splits:
-        single_ocr = item.get("content", ocr_text)
-        parsed = await ai_service.parse_question(single_ocr, student_answer)
-        if not parsed:
-            q = WrongQuestion(user_id=user.id, subject_id=subject_id or 1, ocr_text=single_ocr,
-                              image_url=file.filename, status="pending", mastery_level="new")
-            db.add(q); await db.flush()
-            created.append({"id": q.id, "status": "pending"})
-            continue
-        existing_kps = (await db.execute(select(KnowledgePoint.name).where(
-            KnowledgePoint.user_id == user.id))).scalars().all()
-        existing_pats = (await db.execute(select(QuestionPattern.name).where(
-            QuestionPattern.user_id == user.id))).scalars().all()
-        classified = await ai_service.classify_question(
-            parsed.get("question_content", single_ocr), parsed.get("correct_answer", ""),
-            student_answer, list(existing_kps), list(existing_pats))
-        q = await persist_analyzed_question(db, user.id, single_ocr, file.filename, parsed, classified or {}, subject_id=subject_id)
-        created.append({"id": q.id, "status": "success", "question_content": q.question_content})
 
+@router.post("/text")
+async def upload_text(body: TextUploadRequest,
+                      db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    """纯文本上传：学生先用 Claude 等 AI 识别图片题目，复制文本到这里。跳过 OCR，直接 AI 分析。"""
+    created = await _analyze_and_persist(db, user.id, body.text, "text-upload", body.student_answer, body.subject_id)
     await db.commit()
     return {"status": "success", "data": {"questions": created, "total": len(created)}}
