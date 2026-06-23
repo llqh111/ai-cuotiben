@@ -14,6 +14,7 @@ class User(Base):
     theme_preference = Column(String, default="light")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login_at = Column(DateTime(timezone=True), nullable=True)
+    subject_prefs = Column(String, default="1,2,3,4,5,6")  # 逗号分隔的 enabled subject IDs
 
 
 class Subject(Base):
