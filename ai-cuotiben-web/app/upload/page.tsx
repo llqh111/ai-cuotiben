@@ -20,7 +20,12 @@ export default function UploadPage() {
     try {
       // 带 JWT 调 /api/upload/，AI 两轮分析后跳详情页
       const data = await uploadQuestion(file);
-      router.push(`/question/${data.id}`);
+      const firstQ = data.questions?.[0];
+      if (firstQ) {
+        router.push(`/question/${firstQ.id}`);
+      } else {
+        alert("上传成功但未返回题目信息，请重试");
+      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         router.replace("/login");

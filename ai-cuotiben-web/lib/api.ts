@@ -89,18 +89,20 @@ export async function authenticate(
 
 // ---- 上传 ----
 
-export interface UploadResult {
+export interface UploadItem {
   id: number;
-  subject?: string;
-  knowledge_point_id?: number;
+  status: string;
   question_content?: string;
-  analysis?: string;
-  answer?: string;
+}
+
+export interface UploadResult {
+  questions: UploadItem[];
+  total: number;
 }
 
 export async function uploadQuestion(file: File): Promise<UploadResult> {
   const fd = new FormData();
-  fd.append("file", file); // 对应 FastAPI 的 file 字段
+  fd.append("file", file);
   return apiFetch<UploadResult>("/api/upload/", { method: "POST", body: fd });
 }
 
