@@ -30,11 +30,13 @@ async def recognize_image(file_bytes: bytes, custom_prompt: str = None) -> str:
         custom_prompt: 自定义识别 prompt，为空则使用默认 prompt
 
     Returns:
-        识别到的文字内容，失败时返回空字符串
+        识别到的文字内容
+
+    Raises:
+        RuntimeError: GEMINI_API_KEY 未配置或识别失败
     """
     if not GEMINI_API_KEY:
-        logger.warning("GEMINI_API_KEY not set, falling back to mock")
-        return _mock_ocr_result()
+        raise RuntimeError("GEMINI_API_KEY 未配置，请在 Render 环境变量中设置")
 
     try:
         from google import genai
@@ -63,13 +65,6 @@ async def recognize_image(file_bytes: bytes, custom_prompt: str = None) -> str:
         return text
 
     except ImportError:
-        logger.error("google-genai package not installed. Run: pip install google-genai")
-        return _mock_ocr_result()
+        raise RuntimeError("google-genai 包未安装，无法使用 Gemini OCR")
     except Exception as e:
-        logger.error(f"Gemini recognition failed: {e}")
-        return _mock_ocr_result()
-
-
-def _mock_ocr_result() -> str:
-    """API 不可用时的 mock 兜底。"""
-    return "已知函数 f(x) = x³ - 3x² + ax + 1，若 f(x) 在 (1, +∞) 上单调递增，求 a 的取值范围。"
+        raise RuntimeError(f"Gemini OCR 识别失败: {e}")
