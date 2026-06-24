@@ -572,3 +572,31 @@ export function updateChapterNotes(nodeId: number, notes: string): Promise<Chapt
 export function getProgressOverview(): Promise<ProgressOverview> {
   return apiFetch<ProgressOverview>("/api/chapters/progress");
 }
+
+// ── 批量导入 ──
+
+export interface ImportQuestion {
+  subject_id: number;
+  question_content: string;
+  knowledge_point_name?: string;
+  question_pattern_name?: string;
+  question_type?: string;
+  correct_answer?: string;
+  student_answer?: string;
+  solution_steps?: string;
+  error_analysis?: string;
+  improvement_tips?: string;
+  image_url?: string;
+}
+
+export interface ImportResult {
+  saved_count: number;
+  saved_ids: number[];
+}
+
+export function importQuestions(questions: ImportQuestion[]): Promise<ImportResult> {
+  return apiFetch<ImportResult>("/api/upload/import", {
+    method: "POST",
+    body: JSON.stringify({ questions }),
+  });
+}

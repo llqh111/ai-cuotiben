@@ -1,9 +1,10 @@
 "use client";
 import { motion } from "motion/react";
 import { Navbar } from "@/components/ui/Navbar";
-import { Camera, FileImage, CircleNotch, Article, Image, Stack, ArrowRight, FilePdf } from "@phosphor-icons/react";
+import { Camera, FileImage, CircleNotch, Article, Image, Stack, ArrowRight, FilePdf, FileArrowDown } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { uploadSmallQuestion, uploadBigQuestion, uploadText, useAuthGuard, ApiError, SUBJECTS, uploadPdf } from "@/lib/api";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -392,6 +393,28 @@ export default function UploadPage() {
                 </button>
               </div>
             </div>
+          </motion.div>
+
+          {/* ═══════════ 成品导入 ═══════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            <Link href="/import" className="block">
+              <div className="premium-shell hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                <div className="premium-core p-6 flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shrink-0">
+                    <FileArrowDown size={20} weight="fill" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-zinc-900 dark:text-white">成品导入</h3>
+                    <p className="text-xs text-zinc-400">Claude 已分析好的 JSON → 一键入库</p>
+                  </div>
+                  <ArrowRight size={20} className="text-zinc-300 dark:text-zinc-600" />
+                </div>
+              </div>
+            </Link>
           </motion.div>
         </div>
       </main>
