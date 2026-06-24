@@ -2,9 +2,10 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
+from app.database import get_db, AsyncSessionLocal
 from app.models import Chapter, WrongQuestion, KnowledgePoint, User, Subject
 from app.core.security import get_current_user
+from app.core.seed import seed_chapters
 
 router = APIRouter()
 
@@ -82,6 +83,14 @@ async def get_chapters(
     nodes = (await db.execute(
         select(Chapter).where(Chapter.user_id == user.id, Chapter.subject_id == subject_id)
     )).scalars().all()
+
+    # 懒加载 seed：老用户首次访问时自动补章节数据
+    if not nodes:
+        async with AsyncSessionLocal() as seed_session:
+            await seed_chapters(user.id, seed_session)
+        nodes = (await db.execute(
+            select(Chapter).where(Chapter.user_id == user.id, Chapter.subject_id == subject_id)
+        )).scalars().all()
 
     error_counts = await _compute_error_counts(db, user.id, subject_id)
     tree = _build_tree(list(nodes), error_counts)
@@ -210,6 +219,14 @@ async def get_progress(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    # 懒加载 seed：老用户首次访问时自动补章节数据
+    has_chapters = (await db.execute(
+        select(Chapter.id).where(Chapter.user_id == user.id).limit(1)
+    )).scalars().first()
+    if not has_chapters:
+        async with AsyncSessionLocal() as seed_session:
+            await seed_chapters(user.id, seed_session)
+
     subs = (await db.execute(select(Subject))).scalars().all()
 
     leaf_query = (
