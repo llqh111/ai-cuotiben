@@ -21,6 +21,8 @@ class ImportQuestion(BaseModel):
     solution_steps: Optional[str] = None
     error_analysis: Optional[str] = None
     improvement_tips: Optional[str] = None
+    error_category: Optional[str] = None
+    error_category_detail: Optional[str] = None
     image_url: Optional[str] = None
 
 

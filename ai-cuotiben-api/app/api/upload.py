@@ -110,6 +110,8 @@ async def _persist(db, user_id, ocr_text, image_url, parsed, classified, subject
         solution_steps=parsed.get("solution_steps"),
         error_analysis=classified.get("error_analysis"),
         improvement_tips=classified.get("improvement_tips"),
+        error_category=classified.get("error_category"),
+        error_category_detail=classified.get("error_category_detail"),
         status="analyzed", mastery_level="new",
     )
     db.add(q); await db.commit(); await db.refresh(q)
@@ -514,6 +516,8 @@ async def import_questions(
             solution_steps=item.solution_steps,
             error_analysis=item.error_analysis,
             improvement_tips=item.improvement_tips,
+            error_category=item.error_category,
+            error_category_detail=item.error_category_detail,
             status="analyzed", mastery_level="new",
         )
         db.add(wq); await db.flush()
