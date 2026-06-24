@@ -26,8 +26,8 @@ async def _auth(client, nick="u"):
 
 
 async def _upload(client, h):
-    files = {"file": ("t.png", io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"0" * 32), "image/png")}
-    return (await client.post("/api/upload/", files=files, headers=h)).json()["data"]["questions"][0]["id"]
+    fake_jpg = io.BytesIO(b"\xff\xd8\xff" + b"0" * 32)
+    return (await client.post("/api/upload/small", files={"ocr_image": ("t.jpg", fake_jpg, "image/jpeg")}, headers=h)).json()["data"]["questions"][0]["id"]
 
 
 async def test_export_pdf_endpoint_returns_pdf(client):

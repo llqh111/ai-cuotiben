@@ -7,8 +7,9 @@ async def _auth(client, nick="u"):
 
 
 async def _upload(client, h):
-    files = {"file": ("t.png", io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"0" * 32), "image/png")}
-    return (await client.post("/api/upload/", files=files, headers=h)).json()["data"]["questions"][0]["id"]
+    fake_jpg = io.BytesIO(b"ÿØÿ")
+    fake_jpg = io.BytesIO(b"ÿØÿ")
+    return (await client.post("/api/upload/small", files={"ocr_image": ("t.jpg", fake_jpg, "image/jpeg")}, headers=h)).json()["data"]["questions"][0]["id"]
 
 
 async def test_trends_returns_buckets_with_today_new(client):

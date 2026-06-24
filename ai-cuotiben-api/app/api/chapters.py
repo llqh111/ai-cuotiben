@@ -95,11 +95,15 @@ async def create_chapter(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    name = body.get("name")
+    subject_id = body.get("subject_id")
+    if not name or not subject_id:
+        raise HTTPException(status_code=422, detail="name 和 subject_id 为必填字段")
     node = Chapter(
         user_id=user.id,
-        subject_id=body["subject_id"],
+        subject_id=subject_id,
         parent_id=body.get("parent_id"),
-        name=body["name"],
+        name=name,
         sort_order=body.get("sort_order", 0),
         description=body.get("description"),
     )
@@ -160,7 +164,13 @@ async def update_rating(
     user: User = Depends(get_current_user),
 ):
     rating = body.get("rating")
-    if rating is None or not (1 <= rating <= 5):
+    if rating is None:
+        raise HTTPException(status_code=422, detail="缺少 rating 字段")
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="掌握度必须为 1-5 的整数")
+    if not (1 <= rating <= 5):
         raise HTTPException(status_code=422, detail="掌握度必须为 1-5 的整数")
 
     node = (await db.execute(
@@ -265,7 +275,10 @@ async def get_chapter_errors(
     )
 
     questions = (await db.execute(
-        select(WrongQuestion).where(WrongQuestion.knowledge_point_id.in_(kp_ids_subq))
+        select(WrongQuestion).where(
+            WrongQuestion.knowledge_point_id.in_(kp_ids_subq),
+            WrongQuestion.user_id == user.id,
+        )
     )).scalars().all()
 
     return {
