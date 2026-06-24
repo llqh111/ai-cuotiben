@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import os, time, uuid, logging
 from app.database import get_db
-from app.models import User, Subject, KnowledgePoint, QuestionPattern, WrongQuestion
+from app.models import User, Subject, KnowledgePoint, QuestionPattern, WrongQuestion, Chapter
 from app.core.security import get_current_user
 from app.services import ai_service
 from app.services.gemini_service import recognize_image
@@ -58,7 +58,19 @@ async def _get_or_create_kp(db, user_id, subject_id, name) -> KnowledgePoint:
         KnowledgePoint.user_id == user_id, KnowledgePoint.subject_id == subject_id,
         KnowledgePoint.name == name))).scalars().first()
     if kp is None:
-        kp = KnowledgePoint(user_id=user_id, subject_id=subject_id, name=name)
+        # 尝试匹配考纲章节树中的叶子节点，自动关联 chapter_id
+        chapter: Chapter | None = (await db.execute(
+            select(Chapter).where(
+                Chapter.user_id == user_id,
+                Chapter.subject_id == subject_id,
+                Chapter.name == name,
+                Chapter.parent_id.isnot(None),  # 叶子节点（非顶层章）
+            )
+        )).scalars().first()
+        kp = KnowledgePoint(
+            user_id=user_id, subject_id=subject_id, name=name,
+            chapter_id=chapter.id if chapter else None,
+        )
         db.add(kp); await db.flush()
     return kp
 
