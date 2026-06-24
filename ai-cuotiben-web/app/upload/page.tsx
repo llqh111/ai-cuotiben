@@ -188,7 +188,7 @@ export default function UploadPage() {
 
                 {/* OCR 图（必传） */}
                 <div className="flex items-center gap-4">
-                  <input type="file" accept="image/*" capture="environment" className="hidden" ref={ocrInputRef}
+                  <input type="file" accept="image/*" className="hidden" ref={ocrInputRef}
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       if (f && checkFileSize(f)) setOcrFile(f);
@@ -261,7 +261,7 @@ export default function UploadPage() {
 
                 {/* 题目图（必传） */}
                 <div className="flex items-center gap-4">
-                  <input type="file" accept="image/*" capture="environment" className="hidden" ref={bigImageRef}
+                  <input type="file" accept="image/*" className="hidden" ref={bigImageRef}
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       if (f && checkFileSize(f)) setBigImage(f);
