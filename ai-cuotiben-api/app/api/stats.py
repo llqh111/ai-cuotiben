@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections import defaultdict
 from app.database import get_db
@@ -245,3 +245,24 @@ async def subject_distribution(db: AsyncSession = Depends(get_db), user: User = 
             "learning": stats["learning"], "new": stats["new"]
         })
     return {"status": "success", "data": result}
+
+
+@router.get("/error-categories")
+async def error_categories(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    """错因分布：五个主类 + 未分类的计数和占比。"""
+    rows = (await db.execute(
+        select(
+            func.coalesce(WrongQuestion.error_category, "uncategorized").label("cat"),
+            func.count(WrongQuestion.id)
+        ).where(WrongQuestion.user_id == user.id).group_by("cat")
+    )).all()
+
+    label_map = {
+        "concept": "概念不清", "calculation": "计算失误", "reading": "审题偏差",
+        "careless": "粗心", "method": "方法错误", "uncategorized": "未分类",
+    }
+    total = sum(c for _, c in rows)
+    categories = [{"category": cat, "label": label_map.get(cat, cat),
+                   "count": cnt, "pct": round(cnt / total * 100) if total else 0}
+                  for cat, cnt in rows]
+    return {"status": "success", "data": {"total": total, "categories": categories}}
