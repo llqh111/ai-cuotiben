@@ -11,6 +11,7 @@ import time
 import uuid
 import logging
 from io import BytesIO
+from urllib.parse import urlparse
 
 import cloudinary
 import cloudinary.uploader
@@ -23,14 +24,25 @@ os.makedirs(IMAGE_DIR, exist_ok=True)
 _cloudinary_configured = False
 
 
+def _parse_cloudinary_url(url: str) -> dict:
+    """cloudinary://api_key:api_secret@cloud_name → {cloud_name, api_key, api_secret}"""
+    parsed = urlparse(url)
+    return {
+        "cloud_name": parsed.hostname or "",
+        "api_key": parsed.username or "",
+        "api_secret": parsed.password or "",
+    }
+
+
 def _ensure_cloudinary():
     global _cloudinary_configured
     if _cloudinary_configured:
         return
     cloud_url = os.environ.get("CLOUDINARY_URL", "")
     if cloud_url:
-        cloudinary.config(cloudinary_url=cloud_url)
-        logger.info("Cloudinary configured: %s", cloudinary.config().cloud_name)
+        creds = _parse_cloudinary_url(cloud_url)
+        cloudinary.config(**creds)
+        logger.info("Cloudinary configured: %s", creds["cloud_name"])
     _cloudinary_configured = True
 
 
