@@ -231,6 +231,22 @@ export function getDailyCompletion(): Promise<{
   return apiFetch("/api/stats/daily-completion");
 }
 
+export interface ErrorCategoryItem {
+  category: string;
+  label: string;
+  count: number;
+  pct: number;
+}
+
+export interface ErrorCategoriesData {
+  total: number;
+  categories: ErrorCategoryItem[];
+}
+
+export function getErrorCategories(): Promise<ErrorCategoriesData> {
+  return apiFetch<ErrorCategoriesData>("/api/stats/error-categories");
+}
+
 export interface WeakPoint {
   knowledge_point: string;
   count: number;

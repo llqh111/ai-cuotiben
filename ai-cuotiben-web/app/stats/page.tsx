@@ -4,17 +4,19 @@ import { Navbar } from "@/components/ui/Navbar";
 import { useEffect, useState } from "react";
 import ReactEChartsCore from "echarts-for-react/lib/core";
 import * as echarts from "echarts/core";
-import { BarChart, LineChart } from "echarts/charts";
+import { BarChart, LineChart, PieChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import {
   StatsOverview, SubjectStat, TrendPoint, WeakPoint, DailyReview,
+  ErrorCategoriesData,
   getStatsOverview, getStatsSubjects, getStatsTrends, getStatsWeakPoints, getStatsDailyReview,
+  getErrorCategories,
   useAuthGuard, ApiError,
 } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
-echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
+echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
 export default function StatsPage() {
   useAuthGuard();
@@ -24,15 +26,17 @@ export default function StatsPage() {
   const [trends, setTrends] = useState<TrendPoint[]>([]);
   const [weakPoints, setWeakPoints] = useState<WeakPoint[]>([]);
   const [daily, setDaily] = useState<DailyReview | null>(null);
+  const [errorCats, setErrorCats] = useState<ErrorCategoriesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       getStatsOverview(), getStatsSubjects(), getStatsTrends(),
-      getStatsWeakPoints(), getStatsDailyReview(),
-    ]).then(([ov, sb, tr, wp, dr]) => {
+      getStatsWeakPoints(), getStatsDailyReview(), getErrorCategories(),
+    ]).then(([ov, sb, tr, wp, dr, ec]) => {
       setOverview(ov); setSubjects(sb); setTrends(tr); setWeakPoints(wp); setDaily(dr);
+      setErrorCats(ec);
     }).catch((e) => {
       if (e instanceof ApiError && e.status === 401) { router.replace("/login"); return; }
       setError(e instanceof ApiError ? e.message : "统计数据加载失败，请稍后重试");
@@ -218,6 +222,32 @@ export default function StatsPage() {
                 )}
               </div>
             </motion.div>
+
+            {/* 错因分布 */}
+            {errorCats && errorCats.total > 0 && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="premium-card">
+                <div className="premium-core p-5">
+                  <h3 className="font-semibold text-zinc-900 dark:text-white mb-1">错因分布</h3>
+                  <p className="text-xs text-zinc-400 mb-4">按错因类型聚合，发现薄弱环节</p>
+                  <ReactEChartsCore echarts={echarts} option={{
+                    tooltip: { trigger: "item", formatter: "{b}: {c} 题 ({d}%)" },
+                    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+                    series: [{
+                      type: "pie",
+                      radius: ["40%", "70%"],
+                      center: ["50%", "45%"],
+                      avoidLabelOverlap: false,
+                      label: { show: false },
+                      emphasis: { label: { show: true, fontWeight: "bold" } },
+                      data: errorCats.categories.filter(c => c.count > 0).map(c => ({
+                        name: c.label, value: c.count,
+                      })),
+                      color: ["#ef4444", "#f59e0b", "#3b82f6", "#8b5cf6", "#10b981", "#9ca3af"],
+                    }],
+                  }} style={{ height: 250 }} />
+                </div>
+              </motion.div>
+            )}
           </div>
         )}
       </main>
