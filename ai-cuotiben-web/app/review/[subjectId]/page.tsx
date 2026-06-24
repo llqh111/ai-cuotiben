@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { Navbar } from "@/components/ui/Navbar";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, CheckCircle, XCircle, CircleNotch, Confetti } from "@phosphor-icons/react";
+import { ArrowLeft, CheckCircle, XCircle, CircleNotch, Confetti, Star, ThumbsUp } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useState, use, useEffect } from "react";
 import { apiFetch, useAuthGuard, subjectName } from "@/lib/api";
@@ -65,13 +65,13 @@ export default function ReviewPage({ params }: { params: Promise<{ subjectId: st
     setIsRevealed(false);
   };
 
-  const handleSubmit = async (isCorrect: boolean) => {
+  const handleSubmit = async (rating: 1 | 2 | 3 | 4) => {
     if (!current || submitting) return;
     setSubmitting(true);
     try {
       await apiFetch(`/api/review/submit`, {
         method: "POST",
-        body: JSON.stringify({ question_id: current.id, is_correct: isCorrect }),
+        body: JSON.stringify({ question_id: current.id, rating }),
       });
     } catch {
       // 提交失败不阻断
@@ -207,7 +207,7 @@ export default function ReviewPage({ params }: { params: Promise<{ subjectId: st
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{current.solution_steps}</p>
                               </div>
                             )}
-                            <Button onClick={() => handleSubmit(isChoiceCorrect)} disabled={submitting}
+                            <Button onClick={() => handleSubmit(isChoiceCorrect ? 3 : 1)} disabled={submitting}
                               className="w-full justify-center bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
                               下一题
                             </Button>
@@ -249,7 +249,7 @@ export default function ReviewPage({ params }: { params: Promise<{ subjectId: st
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{current.solution_steps}</p>
                               </div>
                             )}
-                            <Button onClick={() => handleSubmit(isFillCorrect)} disabled={submitting}
+                            <Button onClick={() => handleSubmit(isFillCorrect ? 3 : 1)} disabled={submitting}
                               className="w-full justify-center bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
                               下一题
                             </Button>
@@ -291,12 +291,18 @@ export default function ReviewPage({ params }: { params: Promise<{ subjectId: st
                               <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{current.solution_steps}</p>
                             </div>
                           )}
-                          <div className="mt-4 grid grid-cols-2 gap-4">
-                            <Button onClick={() => handleSubmit(false)} disabled={submitting} className="w-full justify-center bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40">
-                              <XCircle size={20} weight="fill" className="mr-2" /> 不记得
+                          <div className="mt-4 grid grid-cols-4 gap-2">
+                            <Button onClick={() => handleSubmit(1)} disabled={submitting} className="justify-center bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40 text-xs px-2 py-3">
+                              <XCircle size={16} weight="fill" className="mb-1" /><br/>完全忘了
                             </Button>
-                            <Button onClick={() => handleSubmit(true)} disabled={submitting} className="w-full justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-900/40">
-                              <CheckCircle size={20} weight="fill" className="mr-2" /> 记得
+                            <Button onClick={() => handleSubmit(2)} disabled={submitting} className="justify-center bg-orange-50 text-orange-600 hover:bg-orange-100 dark:bg-orange-950/30 dark:text-orange-400 dark:hover:bg-orange-900/40 text-xs px-2 py-3">
+                              <ThumbsUp size={16} className="mb-1 rotate-180" /><br/>困难
+                            </Button>
+                            <Button onClick={() => handleSubmit(3)} disabled={submitting} className="justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-900/40 text-xs px-2 py-3">
+                              <CheckCircle size={16} weight="fill" className="mb-1" /><br/>正确
+                            </Button>
+                            <Button onClick={() => handleSubmit(4)} disabled={submitting} className="justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-900/40 text-xs px-2 py-3">
+                              <Star size={16} weight="fill" className="mb-1" /><br/>简单
                             </Button>
                           </div>
                         </motion.div>

@@ -1,7 +1,7 @@
 "use client";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
-import { CheckCircle, XCircle, Eye } from "@phosphor-icons/react";
+import { CheckCircle, XCircle, Eye, Star, ThumbsUp } from "@phosphor-icons/react";
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 
@@ -43,13 +43,13 @@ export function BrowseCard({
 
   const badge = MASTERY_BADGE[mastery] ?? MASTERY_BADGE.new;
 
-  const handleSubmit = async (isCorrect: boolean) => {
+  const handleSubmit = async (rating: 1 | 2 | 3 | 4) => {
     if (submitting) return;
     setSubmitting(true);
     try {
       const res = await apiFetch<{ mastery_level: string }>("/api/review/submit", {
         method: "POST",
-        body: JSON.stringify({ question_id: id, is_correct: isCorrect }),
+        body: JSON.stringify({ question_id: id, rating }),
       });
       setMastery(res.mastery_level);
       setIsRevealed(false);
@@ -125,20 +125,18 @@ export function BrowseCard({
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{solution_steps}</p>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  onClick={() => handleSubmit(false)}
-                  disabled={submitting}
-                  className="w-full justify-center bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40"
-                >
-                  <XCircle size={18} weight="fill" className="mr-1.5" /> 不记得
+              <div className="grid grid-cols-4 gap-2">
+                <Button onClick={() => handleSubmit(1)} disabled={submitting} className="justify-center bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40 text-xs px-1 py-2">
+                  <XCircle size={14} weight="fill" className="mb-0.5" /> 忘了
                 </Button>
-                <Button
-                  onClick={() => handleSubmit(true)}
-                  disabled={submitting}
-                  className="w-full justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-900/40"
-                >
-                  <CheckCircle size={18} weight="fill" className="mr-1.5" /> 记得
+                <Button onClick={() => handleSubmit(2)} disabled={submitting} className="justify-center bg-orange-50 text-orange-600 hover:bg-orange-100 dark:bg-orange-950/30 dark:text-orange-400 dark:hover:bg-orange-900/40 text-xs px-1 py-2">
+                  <ThumbsUp size={14} className="mb-0.5 rotate-180" /> 困难
+                </Button>
+                <Button onClick={() => handleSubmit(3)} disabled={submitting} className="justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-900/40 text-xs px-1 py-2">
+                  <CheckCircle size={14} weight="fill" className="mb-0.5" /> 正确
+                </Button>
+                <Button onClick={() => handleSubmit(4)} disabled={submitting} className="justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-900/40 text-xs px-1 py-2">
+                  <Star size={14} weight="fill" className="mb-0.5" /> 简单
                 </Button>
               </div>
             </motion.div>
