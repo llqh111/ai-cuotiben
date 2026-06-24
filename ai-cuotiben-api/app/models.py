@@ -62,6 +62,8 @@ class WrongQuestion(Base):
     error_analysis = Column(Text, nullable=True)
     solution_steps = Column(Text, nullable=True)
     improvement_tips = Column(Text, nullable=True)
+    error_category = Column(String(20), nullable=True)      # concept/calculation/reading/careless/method
+    error_category_detail = Column(Text, nullable=True)      # 具体描述
     status = Column(String, default="analyzed")
     mastery_level = Column(String, default="new")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
