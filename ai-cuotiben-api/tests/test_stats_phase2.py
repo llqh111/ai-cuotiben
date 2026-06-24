@@ -28,7 +28,7 @@ async def test_streak_counts_today_review(client):
     qid = await _upload(client, h)
     r0 = await client.get("/api/stats/streak", headers=h)
     assert r0.json()["data"]["streak"] == 0  # 还没复习
-    await client.post("/api/review/submit", json={"question_id": qid, "is_correct": True}, headers=h)
+    await client.post("/api/review/submit", json={"question_id": qid, "rating": 3}, headers=h)
     r1 = await client.get("/api/stats/streak", headers=h)
     assert r1.json()["data"]["streak"] == 1
 
@@ -41,7 +41,7 @@ async def test_daily_completion_rate(client):
     assert d0["due_total"] >= 1
     assert d0["completed"] == 0
     assert d0["rate"] == 0
-    await client.post("/api/review/submit", json={"question_id": qid, "is_correct": True}, headers=h)
+    await client.post("/api/review/submit", json={"question_id": qid, "rating": 3}, headers=h)
     r1 = await client.get("/api/stats/daily-completion", headers=h)
     assert r1.json()["data"]["completed"] == 1
     assert r1.json()["data"]["rate"] == 100

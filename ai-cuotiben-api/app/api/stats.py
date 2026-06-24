@@ -1,6 +1,6 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections import defaultdict
 from app.database import get_db
@@ -129,35 +129,20 @@ async def streak(db: AsyncSession = Depends(get_db), user: User = Depends(get_cu
 @router.get("/daily-completion")
 async def daily_completion(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     """今日复习完成率：已复习 / (已复习 + 仍到期未复习)。"""
-    from sqlalchemy import func
+    now = datetime.now(timezone.utc)
     today = date.today()
 
-    # 一次查询拿所有未 mastered 题的 ID
+    # 一次查询拿所有到期 + 未 mastered 题
     row_ids = (await db.execute(
         select(WrongQuestion.id).where(
-            WrongQuestion.user_id == user.id, WrongQuestion.mastery_level != "mastered"
+            WrongQuestion.user_id == user.id, WrongQuestion.mastery_level != "mastered",
+            or_(WrongQuestion.next_review_at == None,
+                WrongQuestion.next_review_at <= now)
         )
     )).scalars().all()
+    remaining = len(row_ids)
 
-    remaining = 0
-    if row_ids:
-        # 子查询：每道题的最新 review_record
-        latest_sub = (
-            select(ReviewRecord.question_id, func.max(ReviewRecord.id).label("max_id"))
-            .where(ReviewRecord.question_id.in_(row_ids))
-            .group_by(ReviewRecord.question_id)
-        ).subquery()
-        recs = (await db.execute(
-            select(ReviewRecord.question_id, ReviewRecord.next_review_date)
-            .join(latest_sub, ReviewRecord.id == latest_sub.c.max_id)
-        )).all()
-        rec_map = {qid: nrd for qid, nrd in recs}
-        for qid in row_ids:
-            nrd = rec_map.get(qid)
-            if nrd is None or nrd <= today:
-                remaining += 1
-
-    # 今日已完成 + streak（一次查询复用）
+    # 今日已完成
     today_recs_raw = (await db.execute(
         select(ReviewRecord.question_id, ReviewRecord.reviewed_at).where(
             ReviewRecord.user_id == user.id
@@ -266,3 +251,37 @@ async def error_categories(db: AsyncSession = Depends(get_db), user: User = Depe
                    "count": cnt, "pct": round(cnt / total * 100) if total else 0}
                   for cat, cnt in rows]
     return {"status": "success", "data": {"total": total, "categories": categories}}
+
+
+@router.get("/variant")
+async def variant_stats(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    """变式训练统计：覆盖率、正确率。"""
+    from app.models import PracticeQuestion
+
+    question_count = (await db.execute(
+        select(func.count(WrongQuestion.id)).where(WrongQuestion.user_id == user.id)
+    )).scalar() or 0
+
+    variants = (await db.execute(
+        select(PracticeQuestion.source_question_id, PracticeQuestion.user_result)
+        .where(PracticeQuestion.user_id == user.id)
+    )).all()
+
+    by_source = defaultdict(lambda: {"total": 0, "correct": 0})
+    for sid, result in variants:
+        by_source[sid]["total"] += 1
+        if result == "correct":
+            by_source[sid]["correct"] += 1
+
+    covered = sum(1 for c in by_source.values() if c["total"] > 0)
+    coverage = round(covered / question_count * 100) if question_count else 0
+
+    total_variants = sum(c["total"] for c in by_source.values())
+    total_correct = sum(c["correct"] for c in by_source.values())
+    accuracy = round(total_correct / total_variants * 100) if total_variants else 0
+
+    return {"status": "success", "data": {
+        "coverage": coverage,
+        "total_variants": total_variants,
+        "accuracy": accuracy,
+    }}

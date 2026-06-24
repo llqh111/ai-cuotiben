@@ -14,7 +14,7 @@ async def _upload(client, h):
 async def test_weekly_report_counts_new_and_reviews(client):
     h = await _auth(client)
     qid = await _upload(client, h)
-    await client.post("/api/review/submit", json={"question_id": qid, "is_correct": True}, headers=h)
+    await client.post("/api/review/submit", json={"question_id": qid, "rating": 3}, headers=h)
     r = await client.get("/api/stats/report?period=week", headers=h)
     assert r.status_code == 200
     d = r.json()["data"]

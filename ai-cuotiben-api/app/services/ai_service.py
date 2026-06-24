@@ -70,7 +70,11 @@ async def classify_question(question: str, correct_answer: str, student_answer: 
         return {}
 
 SIMILAR_SYSTEM = (
-    "你是高考命题老师。基于给定错题，生成 3 道相似练习题：同知识点、同解题方法、同题型、难度相近。"
+    "你是高考命题老师。基于给定错题及其错因，生成 3 道同类变式练习题。"
+    "若错因是计算失误 → 偏计算量变式、改数字结构；"
+    "若错因是审题偏差 → 偏条件变化、题干陷阱变式；"
+    "若错因是概念不清 → 偏核心概念直接考察、去冗余信息；"
+    "若错因是粗心或方法错误 → 改场景但保留解题框架。"
     "输出 JSON，字段 questions 为数组，每项含 content(题目), answer(答案), solution(解析)。只输出 JSON。")
 
 async def generate_similar(question: str, knowledge_point: str, question_pattern: str,

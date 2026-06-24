@@ -1,17 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import KnowledgePoint, PracticeQuestion, QuestionPattern, User, WrongQuestion
-from app.services import ai_service
+from app.services import ai_service, review_engine
+import json
 
 router = APIRouter()
 
-MAX_GENERATIONS = 3
+MAX_GENERATIONS = 4
 PER_GENERATION = 3
-MAX_PRACTICE = MAX_GENERATIONS * PER_GENERATION  # 每道错题最多生成 3 次 × 每次 3 题
+MAX_PRACTICE = MAX_GENERATIONS * PER_GENERATION  # 每道错题最多生成 4 次 × 每次 3 题 = 12
 
 
 def _dump(p: PracticeQuestion) -> dict:
@@ -69,3 +71,36 @@ async def generate_similar(question_id: int, db: AsyncSession = Depends(get_db),
     for p in created:
         await db.refresh(p)
     return {"status": "success", "data": [_dump(p) for p in created]}
+
+
+class VariantSubmit(BaseModel):
+    practice_id: int
+    rating: int  # 1-4
+
+@router.post("/variant/submit")
+async def submit_variant(body: VariantSubmit, db: AsyncSession = Depends(get_db),
+                         user: User = Depends(get_current_user)):
+    p = (await db.execute(select(PracticeQuestion).where(
+        PracticeQuestion.id == body.practice_id, PracticeQuestion.user_id == user.id
+    ))).scalars().first()
+    if p is None:
+        raise HTTPException(status_code=404, detail="变式题不存在")
+
+    if body.rating >= 3:
+        p.user_result = "correct"
+    else:
+        p.user_result = "wrong"
+    await db.commit()
+
+    # 答对(Good/Easy)时回溯更新原题 FSRS
+    if body.rating in (3, 4):
+        q = (await db.execute(select(WrongQuestion).where(
+            WrongQuestion.id == p.source_question_id))).scalars().first()
+        if q and q.fsrs_card:
+            old_card = json.loads(q.fsrs_card)
+            result = review_engine.review(old_card, body.rating)
+            q.fsrs_card = json.dumps(result["card_dict"])
+            q.next_review_at = result["due"]
+            await db.commit()
+
+    return {"status": "success", "data": {"user_result": p.user_result}}

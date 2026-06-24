@@ -30,7 +30,7 @@ async def test_list_similar_returns_generated(client):
 async def test_generation_cap_at_three_calls(client):
     h = await _auth(client)
     qid = await _upload(client, h)
-    for _ in range(3):  # 3 次 × 3 题 = 9，已达上限
+    for _ in range(4):  # 4 次 × 3 题 = 12，已达上限
         await client.post(f"/api/generate/similar/{qid}", headers=h)
     r = await client.post(f"/api/generate/similar/{qid}", headers=h)
     assert r.status_code == 429
