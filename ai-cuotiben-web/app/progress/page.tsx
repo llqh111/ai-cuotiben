@@ -19,12 +19,12 @@ import {
 } from "@phosphor-icons/react";
 
 const SUBJECTS = [
-  { id: 1, name: "数学", icon: "📐", color: "#3b82f6" },
-  { id: 2, name: "物理", icon: "⚛️", color: "#8b5cf6" },
-  { id: 3, name: "化学", icon: "🧪", color: "#f59e0b" },
-  { id: 4, name: "生物", icon: "🧬", color: "#14b8a6" },
-  { id: 5, name: "语文", icon: "📖", color: "#ef4444" },
-  { id: 6, name: "英语", icon: "🔤", color: "#10b981" },
+  { id: 1, name: "语文", icon: "📖", color: "#ef4444" },
+  { id: 2, name: "数学", icon: "📐", color: "#3b82f6" },
+  { id: 3, name: "英语", icon: "🔤", color: "#10b981" },
+  { id: 4, name: "物理", icon: "⚛️", color: "#8b5cf6" },
+  { id: 5, name: "化学", icon: "🧪", color: "#f59e0b" },
+  { id: 6, name: "生物", icon: "🧬", color: "#14b8a6" },
 ];
 
 function StarRating({
