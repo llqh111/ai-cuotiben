@@ -33,6 +33,7 @@ class KnowledgePoint(Base):
     parent_id = Column(Integer, ForeignKey("knowledge_points.id"), nullable=True)
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
+    chapter_id = Column(Integer, ForeignKey("chapters.id"), nullable=True)
 
 
 class QuestionPattern(Base):
@@ -101,3 +102,20 @@ class KnowledgeRelation(Base):
     source_point_id = Column(Integer, ForeignKey("knowledge_points.id"), nullable=False)
     target_point_id = Column(Integer, ForeignKey("knowledge_points.id"), nullable=False)
     relation_type = Column(String, default="相关")  # 前置 / 相关 / 延伸
+
+
+class Chapter(Base):
+    """考纲章节树节点。三层：章 → 节 → 知识点。"""
+    __tablename__ = "chapters"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), index=True, nullable=False)
+    parent_id = Column(Integer, ForeignKey("chapters.id"), nullable=True)
+    name = Column(String(200), nullable=False)
+    sort_order = Column(Integer, default=0)
+    description = Column(Text, nullable=True)
+    mastery_rating = Column(Integer, nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

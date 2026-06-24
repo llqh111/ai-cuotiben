@@ -486,3 +486,89 @@ export function logout(router: { replace: (p: string) => void }): void {
   clearToken();
   router.replace("/login");
 }
+
+// ── 章节进度追踪 ──
+
+export interface ChapterNode {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  subject_id: number;
+  sort_order: number;
+  description: string | null;
+  mastery_rating: number | null;
+  error_count: number;
+  reviewed_at: string | null;
+  notes: string | null;
+  children: ChapterNode[];
+}
+
+export interface ChapterTree {
+  subject_id: number;
+  nodes: ChapterNode[];
+}
+
+export interface SubjectProgress {
+  id: number;
+  name: string;
+  icon: string;
+  color: string;
+  total_kps: number;
+  rated_kps: number;
+  avg_mastery: number;
+  coverage: number;
+}
+
+export interface ProgressOverview {
+  subjects: SubjectProgress[];
+}
+
+export function getChapters(subjectId: number): Promise<ChapterTree> {
+  return apiFetch<ChapterTree>(`/api/chapters?subject_id=${subjectId}`);
+}
+
+export function createChapter(body: {
+  subject_id: number;
+  parent_id?: number;
+  name: string;
+  sort_order?: number;
+  description?: string;
+}): Promise<ChapterNode> {
+  return apiFetch<ChapterNode>("/api/chapters", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateChapter(nodeId: number, body: {
+  name?: string;
+  sort_order?: number;
+  description?: string;
+}): Promise<ChapterNode> {
+  return apiFetch<ChapterNode>(`/api/chapters/${nodeId}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteChapter(nodeId: number): Promise<{ deleted: boolean }> {
+  return apiFetch(`/api/chapters/${nodeId}`, { method: "DELETE" });
+}
+
+export function updateChapterRating(nodeId: number, rating: number): Promise<ChapterNode> {
+  return apiFetch<ChapterNode>(`/api/chapters/${nodeId}/rating`, {
+    method: "PATCH",
+    body: JSON.stringify({ rating }),
+  });
+}
+
+export function updateChapterNotes(nodeId: number, notes: string): Promise<ChapterNode> {
+  return apiFetch<ChapterNode>(`/api/chapters/${nodeId}/notes`, {
+    method: "PATCH",
+    body: JSON.stringify({ notes }),
+  });
+}
+
+export function getProgressOverview(): Promise<ProgressOverview> {
+  return apiFetch<ProgressOverview>("/api/chapters/progress");
+}

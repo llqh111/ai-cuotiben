@@ -8,12 +8,14 @@ import {
   ChartLineUp,
   Notebook,
   GearSix,
+  ClipboardText,
 } from "@phosphor-icons/react";
 
 const TABS = [
   { href: "/dashboard", label: "仪表盘", icon: ChartPieSlice },
   { href: "/upload", label: "录入", icon: Upload },
   { href: "/stats", label: "统计", icon: ChartLineUp },
+  { href: "/progress", label: "进度", icon: ClipboardText },
   { href: "/browse", label: "错题本", icon: Notebook },
   { href: "/settings", label: "设置", icon: GearSix },
 ];
@@ -29,6 +31,8 @@ export function MobileTabBar() {
     if (href === "/dashboard" && (pathname.startsWith("/question") || pathname.startsWith("/subject"))) return true;
     // /upload/confirm → upload
     if (href === "/upload" && pathname.startsWith("/upload")) return true;
+    // /progress/...  → progress
+    if (href === "/progress" && pathname.startsWith("/progress")) return true;
     // /review/123, /graph/123 → browse
     if (href === "/browse" && (pathname.startsWith("/review") || pathname.startsWith("/graph"))) return true;
     return false;

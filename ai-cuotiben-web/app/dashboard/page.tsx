@@ -4,7 +4,7 @@ import { Navbar } from "@/components/ui/Navbar";
 import { BookOpen, ChartLineUp, ClockCountdown, Bell } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiFetch, useAuthGuard, subjectName, getProfile, getStatsDailyReview, type Profile, type DailyReview } from "@/lib/api";
+import { apiFetch, useAuthGuard, subjectName, getProfile, getStatsDailyReview, getProgressOverview, type Profile, type DailyReview, type SubjectProgress } from "@/lib/api";
 
 interface StatsData {
   total_questions: number;
@@ -18,10 +18,11 @@ export default function DashboardPage() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [dailyReview, setDailyReview] = useState<DailyReview | null>(null);
+  const [progressData, setProgressData] = useState<SubjectProgress[]>([]);
 
   useEffect(() => {
-    Promise.all([apiFetch<StatsData>("/api/stats"), getProfile(), getStatsDailyReview()])
-      .then(([s, p, dr]) => { setStats(s); setProfile(p); setDailyReview(dr); })
+    Promise.all([apiFetch<StatsData>("/api/stats"), getProfile(), getStatsDailyReview(), getProgressOverview().catch(() => ({ subjects: [] }))])
+      .then(([s, p, dr, pg]) => { setStats(s); setProfile(p); setDailyReview(dr); setProgressData(pg.subjects); })
       .catch(() => {});
   }, []);
 
@@ -162,6 +163,42 @@ export default function DashboardPage() {
               )}
             </div>
           </motion.div>
+
+          {/* Card 4: 一轮复习进度 */}
+          {progressData.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.35, ease: [0.32, 0.72, 0, 1] }}
+              className="premium-shell md:col-span-4"
+            >
+              <Link href="/progress" className="premium-core block h-full p-8 hover:bg-zinc-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                <div className="mb-4 text-orange-500">
+                  <ChartLineUp size={24} weight="fill" />
+                </div>
+                <h3 className="text-lg font-semibold">一轮复习进度</h3>
+                <div className="mt-3 space-y-2">
+                  {progressData.map((sub) => (
+                    <div key={sub.id} className="flex items-center gap-2">
+                      <span className="w-10 text-xs font-medium text-zinc-500">{sub.name}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${sub.coverage}%`,
+                            backgroundColor: sub.color || "#3b82f6",
+                          }}
+                        />
+                      </div>
+                      <span className="w-8 text-right text-xs tabular-nums text-zinc-400">
+                        {sub.coverage}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Link>
+            </motion.div>
+          )}
 
         </div>
       </main>
