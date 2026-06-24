@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
-from app.database import get_db, AsyncSessionLocal
+from app.database import get_db
 from app.models import User
 from app.core.security import get_current_user
 from app.schemas.auth import AuthRequest, ProfileUpdate
@@ -37,8 +37,7 @@ async def register(body: AuthRequest, db: AsyncSession = Depends(get_db)):
         return _ok(existing)
     user = User(nickname=body.nickname, passphrase_hash=security.hash_passphrase(body.passphrase))
     db.add(user); await db.commit(); await db.refresh(user)
-    async with AsyncSessionLocal() as seed_session:
-        await seed_chapters(user.id, seed_session)
+    await seed_chapters(user.id, db)
     return _ok(user)
 
 @router.post("/login")
@@ -48,8 +47,7 @@ async def login(body: AuthRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail="昵称或口令错误")
     user.last_login_at = func.now()
     await db.commit()
-    async with AsyncSessionLocal() as seed_session:
-        await seed_chapters(user.id, seed_session)
+    await seed_chapters(user.id, db)
     return _ok(user)
 
 @router.get("/me")

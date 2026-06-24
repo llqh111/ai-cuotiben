@@ -7,8 +7,8 @@ async def _auth(client, nick="u"):
 
 
 async def _upload(client, h):
-    fake_jpg = io.BytesIO(b"ÿØÿ")
-    fake_jpg = io.BytesIO(b"ÿØÿ")
+    fake_jpg = io.BytesIO(b"\xff\xd8\xff")
+    fake_jpg = io.BytesIO(b"\xff\xd8\xff")
     return (await client.post("/api/upload/small", files={"ocr_image": ("t.jpg", fake_jpg, "image/jpeg")}, headers=h)).json()["data"]["questions"][0]["id"]
 
 

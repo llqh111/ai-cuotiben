@@ -1,12 +1,4 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
-from main import app
-
-
-@pytest.fixture
-async def client(db_session):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        yield ac
 
 
 @pytest.mark.asyncio
