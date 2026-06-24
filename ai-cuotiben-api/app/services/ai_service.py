@@ -44,6 +44,9 @@ async def parse_question(ocr_text: str, student_answer: str = "") -> dict:
 CLASSIFY_SYSTEM = (
     "你是高中错题分析老师。基于题目、正确答案、学生答案，输出 JSON，字段："
     "error_analysis(错因分析), improvement_tips(改进建议), "
+    "error_category: 五选一枚举 — 'concept'(概念不清)/'calculation'(计算失误)/"
+    "'reading'(审题偏差)/'careless'(粗心)/'method'(方法错误), "
+    "error_category_detail(具体描述，如 '混淆了正弦定理的适用条件，错用了余弦定理'), "
     "matched_knowledge_point(从已有知识点中选最合适的；都不合适则给新名称), "
     "matched_question_pattern(从已有题型中选最合适的；都不合适则给新名称), "
     "is_new_knowledge_point(bool), is_new_question_pattern(bool)。只输出 JSON。")
@@ -55,6 +58,7 @@ async def classify_question(question: str, correct_answer: str, student_answer: 
         kp = existing_kps[0] if existing_kps else "导数与单调性"
         pat = existing_patterns[0] if existing_patterns else "导数求单调区间"
         return {"error_analysis": "（mock）忽略了端点取等。", "improvement_tips": "（mock）注意 ≥ 与 > 的区别。",
+                "error_category": "concept", "error_category_detail": "（mock）对导数定义理解有偏差",
                 "matched_knowledge_point": kp, "matched_question_pattern": pat,
                 "is_new_knowledge_point": not existing_kps, "is_new_question_pattern": not existing_patterns}
     try:
