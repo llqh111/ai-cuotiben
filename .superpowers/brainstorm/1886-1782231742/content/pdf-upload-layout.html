@@ -1,0 +1,90 @@
+<h2>PDF 上传 — 融入现有页还是独立页？</h2>
+<p class="subtitle">当前上传页已有三张卡片（小题录入 / 大题录入 / 粘贴题目），PDF 怎么加进去？</p>
+
+<div class="options">
+  <div class="option" data-choice="a">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>第四张卡片 — 加在现有 /upload 页底部</h3>
+      <p>所有上传方式集中在一个页面，用户一目了然。上传 PDF → 后端提取文字 → DeepSeek 分析 → 入库。简单直接。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>独立页 — /upload/pdf 专项处理</h3>
+      <p>PDF 上传有专属流程（拖拽区、页数预览、提取进度），独立页面可以做更丰富的交互</p>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:36px;">A — 第四张卡片</h3>
+<div class="mockup">
+  <div class="mockup-header">/upload 页面 — 在现有三卡片底部追加 PDF 卡片</div>
+  <div class="mockup-body">
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <!-- Card 1 -->
+      <div style="border:1px solid #e2e8f0;border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:#EFF6FF;display:flex;align-items:center;justify-content:center;color:#3B82F6;font-size:16px;">📷</div>
+        <div><strong style="font-size:14px;">小题录入</strong><div style="font-size:11px;color:#94A3B8;">Gemini OCR + DeepSeek 分析</div></div>
+      </div>
+      <!-- Card 2 -->
+      <div style="border:1px solid #e2e8f0;border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:#FFFBEB;display:flex;align-items:center;justify-content:center;color:#F59E0B;font-size:16px;">📋</div>
+        <div><strong style="font-size:14px;">大题录入</strong><div style="font-size:11px;color:#94A3B8;">图片展示 + 粘贴文字分析</div></div>
+      </div>
+      <!-- Card 3 -->
+      <div style="border:1px solid #e2e8f0;border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:#ECFDF5;display:flex;align-items:center;justify-content:center;color:#10B981;font-size:16px;">📝</div>
+        <div><strong style="font-size:14px;">粘贴题目</strong><div style="font-size:11px;color:#94A3B8;">直接粘贴文字 + 可选图片存档</div></div>
+      </div>
+      <!-- Card 4 — NEW -->
+      <div style="border:2px solid #818CF8;border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;background:rgba(99,102,241,0.04);">
+        <div style="width:36px;height:36px;border-radius:50%;background:#EEF2FF;display:flex;align-items:center;justify-content:center;color:#6366F1;font-size:16px;">📄</div>
+        <div><strong style="font-size:14px;">PDF 上传</strong><div style="font-size:11px;color:#94A3B8;">提取 PDF 文字 → DeepSeek 逐题分析</div></div>
+        <div style="margin-left:auto;font-size:11px;background:#6366F1;color:white;padding:2px 8px;border-radius:10px;">NEW</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:36px;">B — 独立页</h3>
+<div class="mockup">
+  <div class="mockup-header">/upload/pdf — 专属上传页</div>
+  <div class="mockup-body">
+    <div style="text-align:center;padding:32px 16px;">
+      <div style="font-size:40px;margin-bottom:12px;">📄</div>
+      <h3 style="margin-bottom:4px;">上传 PDF 试卷</h3>
+      <p style="font-size:12px;color:#94A3B8;margin-bottom:20px;">支持文字层提取，每道题独立分析入库</p>
+      <div class="placeholder" style="height:180px;border:2px dashed #CBD5E1;border-radius:16px;display:flex;align-items:center;justify-content:center;">
+        <div style="text-align:center;color:#94A3B8;">
+          <div style="font-size:24px;">📤</div>
+          <div style="font-size:13px;margin-top:8px;">拖拽 PDF 到此处，或点击选择</div>
+          <div style="font-size:11px;margin-top:4px;">最大 10MB · 支持 .pdf</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;">
+        <div class="mock-button">选择科目</div>
+        <div class="mock-button" style="background:#6366F1;border-color:#6366F1;color:white;">开始提取</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons" style="margin-top:28px;">
+  <div class="pros">
+    <h4>A 方案优势</h4>
+    <ul>
+      <li>所有上传入口集中，用户不用记多个路径</li>
+      <li>与现有三段结构一致，前端改动最小</li>
+      <li>移动端 Tab「录入」直达，无需额外导航</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>A 方案代价</h4>
+    <ul>
+      <li>页面变长，四张卡片信息密集</li>
+      <li>PDF 是异步长任务，卡片内不好展示进度</li>
+    </ul>
+  </div>
+</div>

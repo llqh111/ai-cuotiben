@@ -12,6 +12,15 @@ from app.api import upload, questions, stats, auth, review, export, sprint, gene
 IMAGE_DIR = os.environ.get("IMAGE_DIR", "images")
 os.makedirs(IMAGE_DIR, exist_ok=True)
 
+# CORS 来源：本地开发 + 环境变量注入的额外域名（逗号分隔）
+_cors_origins = [
+    "http://localhost:3000",
+    "https://ai-cuotiben-web.onrender.com",
+]
+_extra = os.environ.get("CORS_ORIGINS", "")
+if _extra:
+    _cors_origins.extend(o.strip() for o in _extra.split(",") if o.strip())
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: 建表 + 预置 6 个科目（id 1-6，与前端 SUBJECTS 对齐，避免上传时按名乱建导致科目错位）
@@ -33,10 +42,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://ai-cuotiben-web.onrender.com",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

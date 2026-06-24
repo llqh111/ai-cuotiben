@@ -19,4 +19,5 @@ Pillow>=10.0.0
 google-genai>=1.0.0
 pdf2image>=1.16.3
 fsrs>=5.0
+cloudinary>=1.41.0
 # easyocr 已弃用，改用 Gemini 图片识别

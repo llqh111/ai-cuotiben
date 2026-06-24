@@ -1,0 +1,82 @@
+<h2>统计仪表盘 — 你更喜欢哪种布局？</h2>
+<p class="subtitle">统计维度：总览 / 六科分布 / 趋势曲线 / 薄弱点TOP5 / 今日完成率 / 连续复习天数</p>
+
+<div class="options">
+  <div class="option" data-choice="a">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>仪表盘风格 — 概览网格</h3>
+      <p>顶部 4 个 KPI 卡片（总数/已掌握/掌握率/连续天数），中间一行双图（学科柱状图 + 趋势折线图），底部薄弱TOP5 + 今日完成率并排</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>报告流风格 — 纵向滚动</h3>
+      <p>从上到下依次展开：概览数字 → 学科分布 → 趋势 → 薄弱点 → 今日任务，每个区块占满宽度，像一份学习报告</p>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:40px;">A 方案 — 仪表盘网格</h3>
+<div class="mockup">
+  <div class="mockup-header">Stats Dashboard — Grid Layout</div>
+  <div class="mockup-body">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+      <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:24px;font-weight:700;color:#3B82F6;">127</div>
+        <div style="font-size:12px;color:#64748B;">总错题数</div>
+      </div>
+      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:24px;font-weight:700;color:#10B981;">43</div>
+        <div style="font-size:12px;color:#64748B;">已掌握</div>
+      </div>
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:24px;font-weight:700;color:#F59E0B;">34%</div>
+        <div style="font-size:12px;color:#64748B;">掌握率</div>
+      </div>
+      <div style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:24px;font-weight:700;color:#8B5CF6;">12</div>
+        <div style="font-size:12px;color:#64748B;">连续复习天</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="placeholder" style="height:200px;">学科分布柱状图</div>
+      <div class="placeholder" style="height:200px;">趋势折线图</div>
+      <div class="placeholder" style="height:160px;">薄弱知识点 TOP5</div>
+      <div class="placeholder" style="height:160px;">今日复习完成率</div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:40px;">B 方案 — 报告流</h3>
+<div class="mockup">
+  <div class="mockup-header">Stats Dashboard — Report Flow</div>
+  <div class="mockup-body">
+    <div style="display:flex;gap:12px;margin-bottom:16px;">
+      <div style="flex:1;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#3B82F6;">127</div>
+        <div style="font-size:11px;color:#64748B;">总错题</div>
+      </div>
+      <div style="flex:1;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#10B981;">43</div>
+        <div style="font-size:11px;color:#64748B;">已掌握</div>
+      </div>
+      <div style="flex:1;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#F59E0B;">34%</div>
+        <div style="font-size:11px;color:#64748B;">掌握率</div>
+      </div>
+      <div style="flex:1;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#8B5CF6;">12d</div>
+        <div style="font-size:11px;color:#64748B;">连续复习</div>
+      </div>
+    </div>
+    <div class="placeholder" style="height:200px;margin-bottom:12px;">学科分布 — 柱状图（全宽）</div>
+    <div class="placeholder" style="height:200px;margin-bottom:12px;">掌握趋势 — 折线图（全宽）</div>
+    <div class="placeholder" style="height:160px;margin-bottom:12px;">薄弱知识点 TOP5 — 横向条形图</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="placeholder" style="height:140px;">今日完成率</div>
+      <div class="placeholder" style="height:140px;">复习打卡日历</div>
+    </div>
+  </div>
+</div>

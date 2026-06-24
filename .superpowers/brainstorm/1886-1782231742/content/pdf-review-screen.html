@@ -1,0 +1,124 @@
+<h2>PDF 分析结果 — 选题入库界面</h2>
+<p class="subtitle">AI 拆分分析完成后，用户逐题勾选要入库的错题</p>
+
+<div class="options">
+  <div class="option" data-choice="a">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>卡片列表 + 全选框</h3>
+      <p>每道题一张卡片，展示题目摘要/题型/知识点，右上角复选框。顶部「全选」+「确认入库」按钮。一目了然。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>紧凑表格风格</h3>
+      <p>表格行：题号 / 题型 / 知识点 / 题目摘要 / 复选框。信息密度高，适合题目多（20+）的场景</p>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:36px;">A — 卡片列表</h3>
+<div class="mockup">
+  <div class="mockup-header">PDF 分析完成 — 请选择要入库的错题</div>
+  <div class="mockup-body" style="padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div><strong style="font-size:14px;">2024 数学一模卷</strong><span style="font-size:11px;color:#94A3B8;margin-left:8px;">共识别 8 题</span></div>
+      <div style="display:flex;gap:8px;">
+        <button class="mock-button" style="font-size:11px;padding:4px 12px;">全选 (8)</button>
+        <button class="mock-button" style="font-size:11px;padding:4px 12px;background:#10B981;border-color:#10B981;color:white;">确认入库 ▸</button>
+      </div>
+    </div>
+    <!-- Question cards -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="border:1px solid #E2E8F0;border-radius:12px;padding:12px;display:flex;align-items:flex-start;gap:10px;background:#F8FAFC;">
+        <input type="checkbox" checked style="margin-top:2px;">
+        <div style="flex:1;">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+            <span style="font-size:10px;background:#EFF6FF;color:#3B82F6;padding:1px 6px;border-radius:4px;">解答题</span>
+            <span style="font-size:10px;background:#FEF3C7;color:#D97706;padding:1px 6px;border-radius:4px;">导数</span>
+            <span style="font-size:10px;color:#94A3B8;">· 导数求单调区间</span>
+          </div>
+          <div style="font-size:12px;color:#334155;line-height:1.5;">已知函数 f(x) = x³ - 3x² + ax + 1，若 f(x) 在区间 (1, +∞) 单调递增，求 a 的取值范围。</div>
+        </div>
+      </div>
+      <div style="border:1px solid #E2E8F0;border-radius:12px;padding:12px;display:flex;align-items:flex-start;gap:10px;">
+        <input type="checkbox" checked style="margin-top:2px;">
+        <div style="flex:1;">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+            <span style="font-size:10px;background:#F0FDF4;color:#16A34A;padding:1px 6px;border-radius:4px;">选择题</span>
+            <span style="font-size:10px;background:#FEF3C7;color:#D97706;padding:1px 6px;border-radius:4px;">三角函数</span>
+            <span style="font-size:10px;color:#94A3B8;">· 辅助角公式</span>
+          </div>
+          <div style="font-size:12px;color:#334155;line-height:1.5;">函数 y = 2sin(x+π/3) + √3cosx 的最大值为？</div>
+        </div>
+      </div>
+      <div style="border:1px solid #E2E8F0;border-radius:12px;padding:12px;display:flex;align-items:flex-start;gap:10px;opacity:0.5;">
+        <input type="checkbox" style="margin-top:2px;">
+        <div style="flex:1;">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+            <span style="font-size:10px;background:#FEF2F2;color:#DC2626;padding:1px 6px;border-radius:4px;">填空题</span>
+            <span style="font-size:10px;background:#FEF3C7;color:#D97706;padding:1px 6px;border-radius:4px;">概率统计</span>
+          </div>
+          <div style="font-size:12px;color:#334155;line-height:1.5;">从 1,2,3,4,5 中任取 3 个数，组成三位数的个数为 ▁▁▁</div>
+        </div>
+      </div>
+      <div style="text-align:center;padding:8px;color:#94A3B8;font-size:11px;">已选 2 / 8 题</div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:36px;">B — 紧凑表格</h3>
+<div class="mockup">
+  <div class="mockup-header">PDF 分析完成 — 选题入库</div>
+  <div class="mockup-body" style="padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div><strong style="font-size:14px;">2024 数学一模卷</strong><span style="font-size:11px;color:#94A3B8;margin-left:8px;">8 题</span></div>
+      <button class="mock-button" style="font-size:11px;padding:4px 12px;background:#10B981;border-color:#10B981;color:white;">确认入库 (2)</button>
+    </div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0;">
+          <th style="padding:8px;text-align:left;">☐</th>
+          <th style="padding:8px;text-align:left;">#</th>
+          <th style="padding:8px;text-align:left;">题型</th>
+          <th style="padding:8px;text-align:left;">知识点</th>
+          <th style="padding:8px;text-align:left;">题目摘要</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #F1F5F9;">
+          <td style="padding:8px;">☑</td>
+          <td style="padding:8px;color:#94A3B8;">1</td>
+          <td style="padding:8px;"><span style="background:#EFF6FF;color:#3B82F6;padding:1px 6px;border-radius:4px;font-size:10px;">解答题</span></td>
+          <td style="padding:8px;">导数</td>
+          <td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">已知函数 f(x) = x³ - 3x² + ax + 1...</td>
+        </tr>
+        <tr style="border-bottom:1px solid #F1F5F9;">
+          <td style="padding:8px;">☑</td>
+          <td style="padding:8px;color:#94A3B8;">2</td>
+          <td style="padding:8px;"><span style="background:#F0FDF4;color:#16A34A;padding:1px 6px;border-radius:4px;font-size:10px;">选择题</span></td>
+          <td style="padding:8px;">三角函数</td>
+          <td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">函数 y = 2sin(x+π/3) + √3cosx...</td>
+        </tr>
+        <tr style="border-bottom:1px solid #F1F5F9;">
+          <td style="padding:8px;">☐</td>
+          <td style="padding:8px;color:#94A3B8;">3</td>
+          <td style="padding:8px;"><span style="background:#FEF2F2;color:#DC2626;padding:1px 6px;border-radius:4px;font-size:10px;">填空题</span></td>
+          <td style="padding:8px;">概率统计</td>
+          <td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">从 1,2,3,4,5 中任取 3 个数...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="pros-cons" style="margin-top:28px;">
+  <div class="pros">
+    <h4>选哪个？</h4>
+    <ul>
+      <li><strong>A 卡片：</strong>题目预览更完整、视觉友好，适合 ≤15 题的场景</li>
+      <li><strong>B 表格：</strong>信息密度高、一眼扫完，适合 20+ 题的大试卷</li>
+    </ul>
+  </div>
+</div>

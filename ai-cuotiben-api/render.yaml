@@ -17,6 +17,10 @@ services:
         generateValue: true
       - key: DEEPSEEK_API_KEY
         sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
     buildFilter:
       paths:
         - ai-cuotiben-api/**

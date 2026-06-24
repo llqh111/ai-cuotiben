@@ -10,7 +10,7 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-import os, time, uuid, logging
+import logging
 from app.database import get_db
 from app.models import User, Subject, KnowledgePoint, QuestionPattern, WrongQuestion, Chapter
 from app.core.security import get_current_user
@@ -18,32 +18,14 @@ from app.services import ai_service
 from app.services.gemini_service import recognize_image
 from app.services.upload_pipeline import split_questions, analyze_pdf_questions
 from app.services.ocr_service import extract_text_from_pdf
+from app.services.image_service import save_image
 from app.schemas.question import ImportBatch
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-IMAGE_DIR = os.environ.get("IMAGE_DIR", "images")
-os.makedirs(IMAGE_DIR, exist_ok=True)
-
 ALLOWED_IMAGE = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-
-
-# ────────────────────────────────────────────────
-#  工具函数
-# ────────────────────────────────────────────────
-
-def _save(file_bytes: bytes, user_id: int, original_name: str, prefix: str = "") -> str:
-    """保存图片到 images/ 目录，返回 image_url 如 /api/images/xxx.jpg。"""
-    ext = original_name.rsplit(".", 1)[-1].lower() if "." in (original_name or "") else "jpg"
-    if ext not in ("jpg", "jpeg", "png", "gif", "webp"):
-        ext = "jpg"
-    filename = f"{prefix}{user_id}_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}.{ext}"
-    filepath = os.path.join(IMAGE_DIR, filename)
-    with open(filepath, "wb") as f:
-        f.write(file_bytes)
-    return f"/api/images/{filename}"
 
 
 async def _get_or_create_subject(db: AsyncSession, name: str) -> Subject:
@@ -185,7 +167,7 @@ async def upload_small(
     ocr_bytes = await ocr_image.read()
 
     # 保存 ORC 图
-    ocr_url = _save(ocr_bytes, user.id, ocr_image.filename, prefix="ocr_")
+    ocr_url = save_image(ocr_bytes, user.id, ocr_image.filename, prefix="ocr_")
     logger.info(f"Small question OCR image: {ocr_url}")
 
     # 处理展示配图
@@ -194,7 +176,7 @@ async def upload_small(
         if display_image.content_type not in ALLOWED_IMAGE:
             raise HTTPException(400, "display_image 仅支持 jpg/png/gif/webp")
         disp_bytes = await display_image.read()
-        display_url = _save(disp_bytes, user.id, display_image.filename, prefix="disp_")
+        display_url = save_image(disp_bytes, user.id, display_image.filename, prefix="disp_")
         logger.info(f"Small question display image: {display_url}")
 
     # 复习展示图：有配图用配图，无配图用 OCR 图
@@ -254,7 +236,7 @@ async def upload_big_question(
     image_bytes = await image.read()
 
     # 保存原题图
-    image_url = _save(image_bytes, user.id, image.filename)
+    image_url = save_image(image_bytes, user.id, image.filename)
     logger.info(f"Big question image: {image_url}")
 
     # 不走 Gemini，直接用用户提供的文本
@@ -289,7 +271,7 @@ async def upload_text(
 
     if image and image.content_type in ALLOWED_IMAGE:
         file_bytes = await image.read()
-        image_url = _save(file_bytes, user.id, image.filename)
+        image_url = save_image(file_bytes, user.id, image.filename)
         # 有图时用 Gemini 识别并与文本合并
         gemini_text = await recognize_image(file_bytes)
         if gemini_text:
