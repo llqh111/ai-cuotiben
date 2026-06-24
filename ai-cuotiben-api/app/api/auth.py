@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +10,8 @@ from app.core.security import get_current_user
 from app.schemas.auth import AuthRequest, ProfileUpdate
 from app.core import security
 from app.core.seed import seed_chapters
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -37,7 +41,10 @@ async def register(body: AuthRequest, db: AsyncSession = Depends(get_db)):
         return _ok(existing)
     user = User(nickname=body.nickname, passphrase_hash=security.hash_passphrase(body.passphrase))
     db.add(user); await db.commit(); await db.refresh(user)
-    await seed_chapters(user.id, db)
+    try:
+        await seed_chapters(user.id, db)
+    except Exception:
+        logger.exception("seed_chapters failed for user_id=%s — user created, chapters may be incomplete", user.id)
     return _ok(user)
 
 @router.post("/login")

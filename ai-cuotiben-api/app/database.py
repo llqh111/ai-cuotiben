@@ -16,7 +16,8 @@ if _env_url:
 else:
     DATABASE_URL = f"sqlite+aiosqlite:///{_DB_PATH.as_posix()}"
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+_echo_sql = os.environ.get("SQL_ECHO", "").lower() in ("1", "true", "on")
+engine = create_async_engine(DATABASE_URL, echo=_echo_sql)
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 Base = declarative_base()
