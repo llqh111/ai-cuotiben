@@ -11,15 +11,15 @@ async def _upload(client, h):
 async def test_submit_correct_advances(client):
     h = await _auth(client)
     qid = await _upload(client, h)
-    r = await client.post("/api/review/submit", json={"question_id": qid, "is_correct": True}, headers=h)
+    r = await client.post("/api/review/submit", json={"question_id": qid, "rating": 3}, headers=h)
     assert r.status_code == 200
     assert r.json()["data"]["mastery_level"] == "learning"
-    assert r.json()["data"]["next_review_date"] is not None
+    assert r.json()["data"]["next_review_at"] is not None
 
 async def test_submit_wrong_keeps_learning(client):
     h = await _auth(client)
     qid = await _upload(client, h)
-    r = await client.post("/api/review/submit", json={"question_id": qid, "is_correct": False}, headers=h)
+    r = await client.post("/api/review/submit", json={"question_id": qid, "rating": 1}, headers=h)
     assert r.json()["data"]["mastery_level"] == "learning"
 
 async def test_random_returns_list(client):
