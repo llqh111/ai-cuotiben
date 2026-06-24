@@ -1,22 +1,22 @@
-from dataclasses import dataclass
-from datetime import date, timedelta
-from typing import Optional
+"""FSRS (Free Spaced Repetition Scheduler) review engine — v6 API."""
+from fsrs import Scheduler, Card, Rating, State
 
-INTERVALS = [1, 3, 7, 14, 30]
-MASTER_STREAK = 5
+_scheduler = Scheduler()
 
-@dataclass
-class ReviewResult:
-    interval_index: int
-    consecutive_correct: int
-    next_review_date: Optional[date]
-    mastery_level: str
+def _to_rating(r: int) -> Rating:
+    return {1: Rating.Again, 2: Rating.Hard, 3: Rating.Good, 4: Rating.Easy}[r]
 
-def calculate_next(is_correct: bool, interval_index: int, consecutive_correct: int, today: date) -> ReviewResult:
-    if not is_correct:
-        return ReviewResult(0, 0, today + timedelta(days=INTERVALS[0]), "learning")
-    streak = consecutive_correct + 1
-    if streak >= MASTER_STREAK or interval_index >= len(INTERVALS) - 1:
-        return ReviewResult(interval_index, streak, None, "mastered")
-    next_index = interval_index + 1
-    return ReviewResult(next_index, streak, today + timedelta(days=INTERVALS[next_index]), "learning")
+def review(card_dict: dict | None, rating: int) -> dict:
+    """FSRS review。card_dict=None 表示新卡。返回 to_dict() 序列化结果 + 便捷字段。"""
+    if card_dict is None:
+        card = Card()
+    else:
+        card = Card.from_dict(card_dict)
+    card, review_log = _scheduler.review_card(card, _to_rating(rating))
+    return {
+        "card_dict": card.to_dict(),
+        "due": card.due,              # datetime (UTC) or None
+        "stability": card.stability,   # float or None (first review)
+        "difficulty": card.difficulty, # float or None (first review)
+        "state": card.state,           # int, State enum value
+    }

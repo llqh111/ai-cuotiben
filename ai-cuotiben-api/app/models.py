@@ -66,6 +66,8 @@ class WrongQuestion(Base):
     error_category_detail = Column(Text, nullable=True)      # 具体描述
     status = Column(String, default="analyzed")
     mastery_level = Column(String, default="new")
+    fsrs_card = Column(Text, nullable=True)        # Card.to_dict() JSON
+    next_review_at = Column(DateTime(timezone=True), nullable=True)  # 到期时间
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -79,6 +81,7 @@ class ReviewRecord(Base):
     interval_index = Column(Integer, default=0)
     next_review_date = Column(Date, nullable=True)
     consecutive_correct = Column(Integer, default=0)
+    rating = Column(Integer, nullable=True)  # 1=Again, 2=Hard, 3=Good, 4=Easy
     reviewed_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

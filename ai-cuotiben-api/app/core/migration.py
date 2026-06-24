@@ -42,3 +42,30 @@ async def run_migrations():
                     await conn.execute(text(
                         f"ALTER TABLE wrong_questions ADD COLUMN {col_name} {col_type}"
                     ))
+
+        # FSRS 列 — 线1 间隔重复算法
+        if dialect == "sqlite":
+            result = await conn.execute(text("PRAGMA table_info(wrong_questions)"))
+            cols = [row[1] for row in result.fetchall()]
+            if "fsrs_card" not in cols:
+                await conn.execute(text("ALTER TABLE wrong_questions ADD COLUMN fsrs_card TEXT"))
+            if "next_review_at" not in cols:
+                await conn.execute(text("ALTER TABLE wrong_questions ADD COLUMN next_review_at DATETIME"))
+            result = await conn.execute(text("PRAGMA table_info(review_records)"))
+            cols = [row[1] for row in result.fetchall()]
+            if "rating" not in cols:
+                await conn.execute(text("ALTER TABLE review_records ADD COLUMN rating INTEGER"))
+        elif dialect == "postgresql":
+            for table, col_name, col_type in [
+                ("wrong_questions", "fsrs_card", "TEXT"),
+                ("wrong_questions", "next_review_at", "TIMESTAMPTZ"),
+                ("review_records", "rating", "INTEGER"),
+            ]:
+                result = await conn.execute(text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name=:tbl AND column_name=:col"
+                ), {"tbl": table, "col": col_name})
+                if not result.fetchone():
+                    await conn.execute(text(
+                        f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
+                    ))
