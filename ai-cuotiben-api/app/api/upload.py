@@ -16,7 +16,7 @@ from app.models import User, Subject, KnowledgePoint, QuestionPattern, WrongQues
 from app.core.security import get_current_user
 from app.services import ai_service
 from app.services.vision_service import recognize_image
-from app.services.upload_pipeline import split_questions, analyze_pdf_questions
+from app.services.upload_pipeline import analyze_pdf_questions
 from app.services.ocr_service import extract_text_from_pdf
 from app.services.image_service import save_image
 from app.schemas.question import ImportBatch
@@ -103,42 +103,64 @@ async def _persist(db, user_id, ocr_text, image_url, parsed, classified, subject
 async def _analyze_pipeline(
     db, user_id, ocr_text, image_url, student_answer, subject_id
 ) -> list[dict]:
-    """DeepSeek 管道：拆分 + 逐题分析 + 错因分类 + 落库。"""
-    splits = await split_questions(ocr_text)
-    created = []
+    """DeepSeek 管道：单次调用完成 拆分 + 逐题分析 + 错因分类，再落库。
 
-    for item in splits:
-        single = item.get("content", ocr_text)
-        parsed = await ai_service.parse_question(single, student_answer)
-        if not parsed:
+    原先串行 split → parse → classify（1 + 2N 次模型调用），现合并为 1 次。
+    """
+    existing_kps = (await db.execute(
+        select(KnowledgePoint.name).where(KnowledgePoint.user_id == user_id)
+    )).scalars().all()
+    existing_pats = (await db.execute(
+        select(QuestionPattern.name).where(QuestionPattern.user_id == user_id)
+    )).scalars().all()
+
+    analyzed = await ai_service.analyze_questions_full(
+        ocr_text, student_answer, list(existing_kps), list(existing_pats)
+    )
+
+    # 整体分析失败 → 落一条 pending，保留 OCR 原文供手动处理
+    if not analyzed:
+        q = WrongQuestion(user_id=user_id, subject_id=subject_id or 1,
+                          ocr_text=ocr_text, image_url=image_url,
+                          status="pending", mastery_level="new")
+        db.add(q); await db.commit(); await db.refresh(q)
+        return [{"id": q.id, "status": "pending"}]
+
+    created = []
+    for item in analyzed:
+        content = item.get("question_content")
+        if not content:
             q = WrongQuestion(user_id=user_id, subject_id=subject_id or 1,
-                              ocr_text=single, image_url=image_url,
+                              ocr_text=ocr_text, image_url=image_url,
                               status="pending", mastery_level="new")
             db.add(q); await db.flush()
             created.append({"id": q.id, "status": "pending"})
             continue
 
-        existing_kps = (await db.execute(
-            select(KnowledgePoint.name).where(KnowledgePoint.user_id == user_id)
-        )).scalars().all()
-        existing_pats = (await db.execute(
-            select(QuestionPattern.name).where(QuestionPattern.user_id == user_id)
-        )).scalars().all()
-
-        classified = await ai_service.classify_question(
-            parsed.get("question_content", single),
-            parsed.get("correct_answer", ""),
-            student_answer,
-            list(existing_kps), list(existing_pats),
-        )
-
-        q = await _persist(db, user_id, single, image_url, parsed, classified or {}, subject_id)
+        parsed = {
+            "question_content": content,
+            "question_type": item.get("question_type", "essay"),
+            "correct_answer": item.get("correct_answer"),
+            "solution_steps": item.get("solution_steps"),
+            "subject": item.get("subject", "数学"),
+            "knowledge_point_name": item.get("matched_knowledge_point"),
+        }
+        classified = {
+            "matched_knowledge_point": item.get("matched_knowledge_point"),
+            "matched_question_pattern": item.get("matched_question_pattern"),
+            "error_analysis": item.get("error_analysis"),
+            "improvement_tips": item.get("improvement_tips"),
+            "error_category": item.get("error_category"),
+            "error_category_detail": item.get("error_category_detail"),
+        }
+        q = await _persist(db, user_id, content, image_url, parsed, classified, subject_id)
         created.append({
             "id": q.id, "status": "success",
             "question_content": q.question_content,
             "image_url": image_url,
         })
 
+    await db.commit()
     return created
 
 
