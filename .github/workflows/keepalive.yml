@@ -1,13 +1,18 @@
 name: keepalive
 
-# 防止 Render 免费实例休眠（休眠后冷启动 ~50s）。
-# 每 10 分钟 ping 后端 /health 和前端首页，保持唤醒。
-# 注意：GitHub 定时任务在免费仓库可能有几分钟延迟，且仓库 60 天无活动会自动停用——属正常。
+# 防止 Render 免费后端休眠（休眠后冷启动 ~50s）。
+#
+# 重要：Render 免费版全账户共享约 750 实例小时/月。
+# 24/7 保活两个服务 ≈ 1460h 会超额被暂停，所以这里：
+#   - 只 ping 后端（OCR/数据都在它，冷启动最痛；前端冷启动可接受）
+#   - 只在中国白天学习时段(07:00-24:00)保活，夜里让它睡 → 每月约 510h，远低于 750h
+# 前端首次打开当天可能慢一下，之后 15 分钟内保持唤醒。
 
 on:
   schedule:
-    - cron: "*/10 * * * *" # 每 10 分钟（UTC）
-  workflow_dispatch: {} # 支持手动触发测试
+    # cron 用 UTC。UTC 23:00–15:59 == 中国 07:00–23:59。每 10 分钟一次。
+    - cron: "*/10 0-15,23 * * *"
+  workflow_dispatch: {} # 支持 Actions 页手动触发测试
 
 jobs:
   ping:
@@ -15,5 +20,3 @@ jobs:
     steps:
       - name: Ping backend
         run: curl -sS -o /dev/null -w "backend %{http_code} %{time_total}s\n" --max-time 90 https://ai-cuotiben.onrender.com/health || true
-      - name: Ping frontend
-        run: curl -sS -o /dev/null -w "frontend %{http_code} %{time_total}s\n" --max-time 90 https://ai-cuotiben-web.onrender.com || true
