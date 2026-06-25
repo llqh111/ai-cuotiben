@@ -32,7 +32,7 @@ async def extract_text_from_pdf(file_bytes: bytes) -> str:
     logger.info("No text layer detected, falling back to Gemini OCR")
     try:
         from pdf2image import convert_from_bytes
-        from app.services.gemini_service import recognize_image
+        from app.services.vision_service import recognize_image
 
         images = convert_from_bytes(file_bytes, dpi=200)
         logger.info(f"Converted PDF to {len(images)} page images")

@@ -15,7 +15,7 @@ from app.database import get_db
 from app.models import User, Subject, KnowledgePoint, QuestionPattern, WrongQuestion, Chapter
 from app.core.security import get_current_user
 from app.services import ai_service
-from app.services.gemini_service import recognize_image
+from app.services.vision_service import recognize_image
 from app.services.upload_pipeline import split_questions, analyze_pdf_questions
 from app.services.ocr_service import extract_text_from_pdf
 from app.services.image_service import save_image
@@ -182,8 +182,12 @@ async def upload_small(
     # 复习展示图：有配图用配图，无配图用 OCR 图
     image_url = display_url or ocr_url
 
-    # Gemini OCR 识别
-    ocr_text = await recognize_image(ocr_bytes)
+    # Qwen-VL OCR 识别（失败时给出明确原因，避免前端只看到"网络异常"）
+    try:
+        ocr_text = await recognize_image(ocr_bytes)
+    except RuntimeError as e:
+        logger.error(f"OCR 识别失败: {e}")
+        raise HTTPException(502, f"OCR 识别失败：{e}")
 
     # confirm_first 模式：只返回 OCR 文本，不分析
     if confirm_first:
@@ -272,11 +276,14 @@ async def upload_text(
     if image and image.content_type in ALLOWED_IMAGE:
         file_bytes = await image.read()
         image_url = save_image(file_bytes, user.id, image.filename)
-        # 有图时用 Gemini 识别并与文本合并
-        gemini_text = await recognize_image(file_bytes)
-        if gemini_text:
-            ocr_text = f"{gemini_text}\n\n---\n{text}"
-            logger.info(f"Text upload: merged Gemini OCR ({len(gemini_text)} chars) with user text")
+        # 有图时用 Qwen-VL 识别并与文本合并；识别失败不阻塞，退回纯文本
+        try:
+            vision_text = await recognize_image(file_bytes)
+            if vision_text:
+                ocr_text = f"{vision_text}\n\n---\n{text}"
+                logger.info(f"Text upload: merged Qwen-VL OCR ({len(vision_text)} chars) with user text")
+        except RuntimeError as e:
+            logger.warning(f"文本上传附图 OCR 失败，退回纯文本: {e}")
 
     created = await _analyze_pipeline(
         db, user.id, ocr_text, image_url or "text-upload", student_answer, subject_id

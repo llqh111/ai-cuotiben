@@ -37,6 +37,24 @@ interface ApiEnvelope<T> {
   detail?: string;
 }
 
+// Render 免费版休眠后冷启动可达 ~50s，给请求留足超时（默认 90s）。
+const DEFAULT_TIMEOUT_MS = 90_000;
+
+let warmedUp = false;
+
+// 预热后端：唤醒休眠的 Render 实例。打开页面时调用，等用户真正操作时后端已就绪。
+export async function warmupBackend(): Promise<void> {
+  if (warmedUp) return;
+  try {
+    await fetch(`${API_BASE}/health`, {
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    warmedUp = true;
+  } catch {
+    // 预热失败不影响后续真实请求，忽略
+  }
+}
+
 // 核心请求：自动带 token；后端用 HTTPException 返回 {detail}，成功返回 {status,data}。
 export async function apiFetch<T>(
   path: string,
@@ -50,7 +68,24 @@ export async function apiFetch<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...opts,
+      headers,
+      signal: opts.signal ?? AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+  } catch (e) {
+    // 超时 / 断网 → 给出可操作的提示，而非笼统的"网络异常"
+    const isTimeout = e instanceof DOMException && e.name === "TimeoutError";
+    throw new ApiError(
+      isTimeout
+        ? "服务器启动中或响应较慢，请稍等约 1 分钟后重试（免费服务器休眠唤醒需要时间）"
+        : "无法连接服务器，请检查网络后重试",
+      0,
+    );
+  }
+  warmedUp = true;
   const json = (await res.json().catch(() => ({}))) as ApiEnvelope<T>;
 
   if (res.status === 401) {

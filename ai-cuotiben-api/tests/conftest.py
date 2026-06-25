@@ -4,7 +4,7 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from app.database import Base, get_db
 from app.core import seed
-from app.services import ai_service, gemini_service, image_service
+from app.services import ai_service, vision_service, image_service  # noqa: vision_service 供 patch 备用
 from app.api import upload
 import app.models  # noqa: 注册模型
 from main import app

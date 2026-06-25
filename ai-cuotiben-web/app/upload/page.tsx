@@ -2,10 +2,10 @@
 import { motion } from "motion/react";
 import { Navbar } from "@/components/ui/Navbar";
 import { Camera, FileImage, CircleNotch, Article, Image, Stack, ArrowRight, FilePdf, FileArrowDown } from "@phosphor-icons/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { uploadSmallQuestion, uploadBigQuestion, uploadText, useAuthGuard, ApiError, SUBJECTS, uploadPdf } from "@/lib/api";
+import { uploadSmallQuestion, uploadBigQuestion, uploadText, useAuthGuard, ApiError, SUBJECTS, uploadPdf, warmupBackend } from "@/lib/api";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -20,6 +20,11 @@ function checkFileSize(file: File): boolean {
 export default function UploadPage() {
   useAuthGuard();
   const router = useRouter();
+
+  // 进页面就预热后端，唤醒休眠的免费实例，避免上传时干等冷启动
+  useEffect(() => {
+    warmupBackend();
+  }, []);
 
   // 小题
   const ocrInputRef = useRef<HTMLInputElement>(null);
@@ -160,7 +165,7 @@ export default function UploadPage() {
         >
           <h1 className="text-4xl font-semibold tracking-tighter md:text-5xl">录入错题</h1>
           <p className="mx-auto mt-4 max-w-lg text-sm text-zinc-500 dark:text-zinc-400">
-            小题 Gemini 自动识别，大题粘贴外部 AI 文字，DeepSeek 逐题分析
+            小题 AI 自动识别，大题粘贴外部 AI 文字，DeepSeek 逐题分析
           </p>
         </motion.div>
 
@@ -179,7 +184,7 @@ export default function UploadPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-zinc-900 dark:text-white">小题录入</h3>
-                    <p className="text-xs text-zinc-400">Gemini 自动 OCR 识别 + DeepSeek 分析</p>
+                    <p className="text-xs text-zinc-400">AI 自动 OCR 识别 + DeepSeek 分析</p>
                   </div>
                   <div className="ml-auto">
                     <SubjectPicker value={smallSubject} onChange={setSmallSubject} />
