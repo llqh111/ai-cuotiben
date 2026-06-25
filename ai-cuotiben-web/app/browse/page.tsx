@@ -5,6 +5,7 @@ import { CircleNotch, BookOpen, ArrowsOutCardinal, CheckSquare, Trash, Check } f
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { apiFetch, useAuthGuard, SUBJECTS, subjectName, batchQuestions, imageSrc } from "@/lib/api";
+import { MathText } from "@/components/MathText";
 
 interface QuestionRow {
   id: number;
@@ -305,15 +306,15 @@ export default function BrowsePage() {
                     )}
 
                     {/* Question text */}
-                    <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 line-clamp-3 whitespace-pre-wrap">
-                      {q.question_content}
+                    <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 line-clamp-3">
+                      <MathText text={q.question_content} />
                     </p>
 
                     {/* Answer preview */}
                     <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/50">
                       <p className="text-xs text-zinc-400">
                         <span className="font-medium text-emerald-500 dark:text-emerald-400">答案：</span>
-                        <span className="line-clamp-1">{q.correct_answer}</span>
+                        <span className="line-clamp-1"><MathText text={q.correct_answer} /></span>
                       </p>
                     </div>
 

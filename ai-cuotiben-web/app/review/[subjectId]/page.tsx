@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle, XCircle, CircleNotch, Confetti, Star, ThumbsUp 
 import Link from "next/link";
 import { useState, use, useEffect } from "react";
 import { apiFetch, useAuthGuard, subjectName, imageSrc } from "@/lib/api";
+import { MathText } from "@/components/MathText";
 
 interface ReviewQuestion {
   id: number;
@@ -175,8 +176,8 @@ export default function ReviewPage({ params }: { params: Promise<{ subjectId: st
                   </div>
                 </div>
 
-                <div className="text-xl md:text-2xl font-medium leading-relaxed tracking-tight text-zinc-900 dark:text-zinc-100 flex-grow whitespace-pre-wrap">
-                  {current.question_content}
+                <div className="text-xl md:text-2xl font-medium leading-relaxed tracking-tight text-zinc-900 dark:text-zinc-100 flex-grow">
+                  <MathText text={current.question_content} />
                 </div>
 
                 {current.image_url && (
@@ -204,7 +205,7 @@ export default function ReviewPage({ params }: { params: Promise<{ subjectId: st
                             {current.solution_steps && (
                               <div>
                                 <h4 className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-2">解析</h4>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{current.solution_steps}</p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed"><MathText text={current.solution_steps} /></p>
                               </div>
                             )}
                             <Button onClick={() => handleSubmit(isChoiceCorrect ? 3 : 1)} disabled={submitting}
@@ -246,7 +247,7 @@ export default function ReviewPage({ params }: { params: Promise<{ subjectId: st
                             {current.solution_steps && (
                               <div>
                                 <h4 className="text-xs uppercase tracking-widest text-zinc-400 font-medium mb-2">解析</h4>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{current.solution_steps}</p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed"><MathText text={current.solution_steps} /></p>
                               </div>
                             )}
                             <Button onClick={() => handleSubmit(isFillCorrect ? 3 : 1)} disabled={submitting}
@@ -283,7 +284,7 @@ export default function ReviewPage({ params }: { params: Promise<{ subjectId: st
                         <motion.div key="revealed" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
                           <div>
                             <h4 className="text-xs uppercase tracking-widest text-emerald-500 font-medium mb-2">正确答案</h4>
-                            <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100 whitespace-pre-wrap">{current.correct_answer}</p>
+                            <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100"><MathText text={current.correct_answer} /></p>
                           </div>
                           {current.solution_steps && (
                             <div>

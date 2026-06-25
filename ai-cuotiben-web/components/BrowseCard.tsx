@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { CheckCircle, XCircle, Eye, Star, ThumbsUp } from "@phosphor-icons/react";
 import { useState } from "react";
 import { apiFetch, imageSrc } from "@/lib/api";
+import { MathText } from "@/components/MathText";
 
 interface BrowseCardProps {
   id: number;
@@ -93,8 +94,8 @@ export function BrowseCard({
             )}
           </div>
         )}
-        <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 line-clamp-4 whitespace-pre-wrap">
-          {question_content}
+        <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 line-clamp-4">
+          <MathText text={question_content} />
         </p>
 
         {/* Action */}
@@ -117,12 +118,12 @@ export function BrowseCard({
             >
               <div>
                 <h4 className="text-[10px] uppercase tracking-widest text-emerald-500 font-medium mb-1">正确答案</h4>
-                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 whitespace-pre-wrap">{correct_answer}</p>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100"><MathText text={correct_answer} /></p>
               </div>
               {solution_steps && (
                 <div>
                   <h4 className="text-[10px] uppercase tracking-widest text-zinc-400 font-medium mb-1">解析</h4>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{solution_steps}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed"><MathText text={solution_steps} /></p>
                 </div>
               )}
               <div className="grid grid-cols-4 gap-2">

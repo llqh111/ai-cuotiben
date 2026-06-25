@@ -17,6 +17,7 @@ import {
   imageSrc,
   type PracticeQuestion,
 } from "@/lib/api";
+import { MathText } from "@/components/MathText";
 
 interface QuestionDetail {
   subject_id: number;
@@ -207,8 +208,8 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
                     className="mt-4 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-base leading-relaxed outline-none focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-indigo-600 resize-y"
                   />
                 ) : (
-                  <div className="mt-4 rounded-2xl bg-zinc-100 p-6 text-lg leading-relaxed dark:bg-[#0a0a0a] whitespace-pre-wrap">
-                    {data.original_text}
+                  <div className="mt-4 rounded-2xl bg-zinc-100 p-6 text-lg leading-relaxed dark:bg-[#0a0a0a]">
+                    <MathText text={data.original_text} />
                   </div>
                 )}
               </div>
@@ -216,8 +217,8 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
               {/* AI Analysis */}
               <div className="mt-12">
                 <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-400">AI 错因分析</h3>
-                <p className="mt-4 text-zinc-600 leading-relaxed dark:text-zinc-400 whitespace-pre-wrap">
-                  {data.analysis}
+                <p className="mt-4 text-zinc-600 leading-relaxed dark:text-zinc-400">
+                  <MathText text={data.analysis} />
                 </p>
               </div>
 
@@ -232,8 +233,8 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
                     className="mt-4 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-base leading-relaxed outline-none focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-indigo-600 resize-y"
                   />
                 ) : (
-                  <div className="mt-4 prose prose-zinc dark:prose-invert whitespace-pre-wrap">
-                    {data.answer}
+                  <div className="mt-4 prose prose-zinc dark:prose-invert">
+                    <MathText text={data.answer} />
                   </div>
                 )}
               </div>
@@ -273,17 +274,16 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
                       <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                         练习题 {i + 1}
                       </p>
-                      <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">
-                        {p.content}
+                      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <MathText text={p.content} />
                       </p>
                       {p.answer && (
                         <details className="mt-2">
                           <summary className="cursor-pointer text-xs text-zinc-400">
                             查看答案与解析
                           </summary>
-                          <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-500">
-                            {p.answer}
-                            {p.solution ? `\n\n${p.solution}` : ""}
+                          <p className="mt-2 text-sm text-zinc-500">
+                            <MathText text={p.answer + (p.solution ? `\n\n${p.solution}` : "")} />
                           </p>
                         </details>
                       )}

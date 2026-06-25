@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getSprintPlan, getProfile, updateProfile, subjectName, useAuthGuard, type SprintPlan, type SprintQuestion } from "@/lib/api";
 import { CalendarBlank, Lightning, ArrowRight, Clock } from "@phosphor-icons/react";
+import { MathText } from "@/components/MathText";
 
 const PHASE_LABEL: Record<string, { label: string; color: string; desc: string }> = {
   no_exam: { label: "未设置考试日期", color: "text-zinc-400", desc: "在设置中设定高考日期以启用冲刺模式" },
@@ -100,7 +101,7 @@ export default function SprintPage() {
                           <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500">{subjectName(q.subject_id)}</span>
                           <span className="text-xs px-2 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-400">{q.question_type}</span>
                         </div>
-                        <p className="text-sm text-zinc-700 dark:text-zinc-300 truncate">{q.question_content ?? "（加载中…）"}</p>
+                        <p className="text-sm text-zinc-700 dark:text-zinc-300 truncate"><MathText text={q.question_content ?? "（加载中…）"} /></p>
                       </div>
                       <ArrowRight size={18} className="text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors shrink-0 mt-1" />
                     </div>
