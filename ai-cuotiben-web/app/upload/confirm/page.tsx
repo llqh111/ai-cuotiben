@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
-import { confirmUpload } from "@/lib/api";
+import { confirmUpload, imageSrc } from "@/lib/api";
 
 function ConfirmContent() {
   const router = useRouter();
@@ -66,7 +66,7 @@ function ConfirmContent() {
         {imageUrl && (
           <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900">
             <img
-              src={imageUrl}
+              src={imageSrc(imageUrl)}
               alt="原题图片"
               className="w-full max-h-48 object-contain"
             />

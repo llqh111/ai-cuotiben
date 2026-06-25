@@ -8,6 +8,14 @@ export const API_BASE =
 
 const TOKEN_KEY = "cuotiben_token";
 
+// 图片地址归一化：Cloudinary 返回完整 http(s) URL → 直接用；
+// 本地存储是 /api/images/... 相对路径 → 补后端域名。
+// 避免给 Cloudinary 全 URL 再拼一次域名导致图裂。
+export function imageSrc(url: string | null | undefined): string {
+  if (!url) return "";
+  return /^https?:\/\//.test(url) ? url : `${API_BASE}${url}`;
+}
+
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(TOKEN_KEY);

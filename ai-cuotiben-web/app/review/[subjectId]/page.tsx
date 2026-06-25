@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { ArrowLeft, CheckCircle, XCircle, CircleNotch, Confetti, Star, ThumbsUp } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useState, use, useEffect } from "react";
-import { apiFetch, useAuthGuard, subjectName } from "@/lib/api";
+import { apiFetch, useAuthGuard, subjectName, imageSrc } from "@/lib/api";
 
 interface ReviewQuestion {
   id: number;
@@ -182,7 +182,7 @@ export default function ReviewPage({ params }: { params: Promise<{ subjectId: st
                 {current.image_url && (
                   <div className="mt-6 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
                     <img
-                      src={`${process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000"}${current.image_url}`}
+                      src={imageSrc(current.image_url)}
                       alt="题目原图"
                       className="w-full object-contain max-h-72"
                     />

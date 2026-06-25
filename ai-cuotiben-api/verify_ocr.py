@@ -83,9 +83,9 @@ def run_live():
     data = r.json()["data"]
     print(f"\n--- OCR 识别文本 ---\n{data['ocr_text']}")
     print(f"\n--- 图片存储 URL ---\n{data['image_url']}")
-    print("✓ Cloudinary 云存储生效 → 跨设备可看"
+    print("[OK] Cloudinary 云存储生效 → 跨设备可看"
           if data["image_url"].startswith("http")
-          else "✗ 本地存储 → 跨设备会失效，需在 Render 设 CLOUDINARY_URL")
+          else "[FAIL] 本地存储 → 跨设备会失效，需在 Render 设 CLOUDINARY_URL")
 
 
 if __name__ == "__main__":

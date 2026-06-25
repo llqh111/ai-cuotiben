@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { CheckCircle, XCircle, Eye, Star, ThumbsUp } from "@phosphor-icons/react";
 import { useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, imageSrc } from "@/lib/api";
 
 interface BrowseCardProps {
   id: number;
@@ -83,7 +83,7 @@ export function BrowseCard({
         {image_url && (
           <div className="relative">
             <img
-              src={`${process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000"}${image_url}`}
+              src={imageSrc(image_url)}
               alt="题目原图"
               className={`w-full rounded-xl object-cover cursor-pointer transition-all ${showImage ? "max-h-96" : "max-h-20 opacity-60 hover:opacity-80"}`}
               onClick={() => setShowImage(!showImage)}

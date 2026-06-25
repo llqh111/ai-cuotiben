@@ -4,7 +4,7 @@ import { Navbar } from "@/components/ui/Navbar";
 import { CircleNotch, BookOpen, ArrowsOutCardinal, CheckSquare, Trash, Check } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
-import { apiFetch, useAuthGuard, SUBJECTS, subjectName, batchQuestions } from "@/lib/api";
+import { apiFetch, useAuthGuard, SUBJECTS, subjectName, batchQuestions, imageSrc } from "@/lib/api";
 
 interface QuestionRow {
   id: number;
@@ -297,7 +297,7 @@ export default function BrowsePage() {
                     {q.image_url && (
                       <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
                         <img
-                          src={`${process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000"}${q.image_url}`}
+                          src={imageSrc(q.image_url)}
                           alt="题目原图"
                           className="w-full object-cover max-h-28"
                         />

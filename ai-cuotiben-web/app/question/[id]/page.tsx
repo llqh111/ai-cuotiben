@@ -14,6 +14,7 @@ import {
   downloadPdf,
   ApiError,
   getToken,
+  imageSrc,
   type PracticeQuestion,
 } from "@/lib/api";
 
@@ -152,7 +153,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
                 className="mb-8 overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800"
               >
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000"}${data.image_url}`}
+                  src={imageSrc(data.image_url)}
                   alt="题目原图"
                   className="w-full object-contain max-h-96"
                 />
