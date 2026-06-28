@@ -13,3 +13,4 @@ class ProfileUpdate(BaseModel):
     exam_date: Optional[date] = None
     theme_preference: Optional[str] = None
     subject_prefs: Optional[str] = None
+    vault_path: Optional[str] = None

@@ -2,7 +2,7 @@ import json
 import asyncio
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db, AsyncSessionLocal
@@ -10,6 +10,7 @@ from app.models import WrongQuestion, ReviewRecord, User, PracticeQuestion, Know
 from app.core.security import get_current_user
 from app.services import review_engine, ai_service
 from app.schemas.review import ReviewSubmit
+from app.api.knowledge import trigger_question_sync
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -78,7 +79,8 @@ async def by_pattern(pattern_id: int, db: AsyncSession = Depends(get_db), user: 
     return {"status": "success", "data": [_q(q) for q in rows]}
 
 @router.post("/submit")
-async def submit(body: ReviewSubmit, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+async def submit(body: ReviewSubmit, background_tasks: BackgroundTasks,
+                 db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     q = (await db.execute(select(WrongQuestion).where(
         WrongQuestion.id == body.question_id, WrongQuestion.user_id == user.id))).scalars().first()
     if q is None:
@@ -110,6 +112,8 @@ async def submit(body: ReviewSubmit, db: AsyncSession = Depends(get_db), user: U
         consecutive_correct=0,
     ))
     await db.commit()
+
+    background_tasks.add_task(trigger_question_sync, body.question_id, user.id)
 
     # 变式自动触发：最近10次复习中 >=2 次 Again/Hard
     if body.rating in (1, 2):

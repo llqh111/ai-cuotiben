@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import WrongQuestion, ReviewRecord, KnowledgePoint, QuestionPattern, User
 from app.core.security import get_current_user
 from app.schemas.question import QuestionUpdate
+from app.api.knowledge import trigger_question_sync, trigger_delete_sync
 
 router = APIRouter()
 
@@ -59,17 +60,21 @@ async def get_question(question_id: int, db: AsyncSession = Depends(get_db), use
 
 @router.put("/{question_id}")
 async def update_question(question_id: int, body: QuestionUpdate,
+                          background_tasks: BackgroundTasks,
                           db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     q = await _owned(db, user.id, question_id)
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(q, field, value)
     await db.commit(); await db.refresh(q)
+    background_tasks.add_task(trigger_question_sync, question_id, user.id)
     return {"status": "success", "data": _dump(q)}
 
 @router.delete("/{question_id}")
-async def delete_question(question_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+async def delete_question(question_id: int, background_tasks: BackgroundTasks,
+                          db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     q = await _owned(db, user.id, question_id)
     await db.execute(delete(ReviewRecord).where(ReviewRecord.question_id == q.id))
+    background_tasks.add_task(trigger_delete_sync, "question", question_id, user.id)
     await db.delete(q); await db.commit()
     return {"status": "success", "message": "已删除"}
 
