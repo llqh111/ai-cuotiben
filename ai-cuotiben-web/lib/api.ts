@@ -659,3 +659,21 @@ export function importQuestions(questions: ImportQuestion[]): Promise<ImportResu
     body: JSON.stringify({ questions }),
   });
 }
+
+// ── 知识库同步 ──
+
+export async function exportMarkdown(subjectId?: number): Promise<void> {
+  const params = subjectId ? `?subject_id=${subjectId}` : "";
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/api/knowledge/export-markdown${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new ApiError("导出失败", res.status);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "cuotiben-export.zip";
+  a.click();
+  URL.revokeObjectURL(url);
+}
