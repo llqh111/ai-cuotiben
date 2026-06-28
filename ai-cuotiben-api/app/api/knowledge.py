@@ -227,9 +227,11 @@ def trigger_question_sync(question_id: int, user_id: int):
                 await sync_question(db, user, question_id)
 
     try:
-        asyncio.create_task(_run())
+        loop = asyncio.get_running_loop()
     except RuntimeError:
         asyncio.run(_run())
+    else:
+        loop.create_task(_run())
 
 
 def trigger_delete_sync(entity_type: str, entity_id: int, user_id: int):
@@ -245,6 +247,8 @@ def trigger_delete_sync(entity_type: str, entity_id: int, user_id: int):
                 await delete_vault_file(db, user, entity_type, entity_id)
 
     try:
-        asyncio.create_task(_run())
+        loop = asyncio.get_running_loop()
     except RuntimeError:
         asyncio.run(_run())
+    else:
+        loop.create_task(_run())
