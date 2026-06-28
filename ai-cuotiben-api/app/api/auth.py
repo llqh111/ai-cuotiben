@@ -17,11 +17,14 @@ router = APIRouter()
 
 
 def _profile(user: User):
+    from app.services.knowledge_sync import _detect_vault_path
+    vault = user.vault_path or _detect_vault_path()
     return {"status": "success", "data": {
         "user_id": user.id, "nickname": user.nickname,
         "exam_date": user.exam_date.isoformat() if user.exam_date else None,
         "theme_preference": user.theme_preference,
-        "subject_prefs": getattr(user, "subject_prefs", "1,2,3,4,5,6")}}
+        "subject_prefs": getattr(user, "subject_prefs", "1,2,3,4,5,6"),
+        "vault_path": vault}}
 
 def _ok(user: User):
     return {"status": "success", "data": {

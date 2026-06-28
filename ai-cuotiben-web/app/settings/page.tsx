@@ -6,6 +6,7 @@ import { CalendarBlank, Palette, BookBookmark, Check } from "@phosphor-icons/rea
 import { useEffect, useState } from "react";
 import { useAuthGuard, getProfile, updateProfile, SUBJECTS } from "@/lib/api";
 import { useTheme } from "@/components/ui/ThemeProvider";
+import KnowledgeSyncPanel from "./knowledge-sync";
 
 const THEMES: { key: "light" | "dark" | "system"; label: string }[] = [
   { key: "system", label: "跟随系统" },
@@ -169,6 +170,8 @@ export default function SettingsPage() {
               </div>
             </div>
           </PremiumCard>
+
+          <KnowledgeSyncPanel />
         </div>
       </main>
     </>
