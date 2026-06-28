@@ -15,6 +15,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     subject_prefs = Column(String, default="1,2,3,4,5,6")  # 逗号分隔的 enabled subject IDs
+    vault_path = Column(String(500), nullable=True)  # Obsidian vault 根目录绝对路径
 
 
 class Subject(Base):
@@ -34,6 +35,7 @@ class KnowledgePoint(Base):
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     chapter_id = Column(Integer, ForeignKey("chapters.id"), nullable=True)
+    obsidian_path = Column(String(500), nullable=True)  # vault 内相对路径
 
 
 class QuestionPattern(Base):
@@ -70,6 +72,7 @@ class WrongQuestion(Base):
     next_review_at = Column(DateTime(timezone=True), nullable=True)  # 到期时间
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    obsidian_path = Column(String(500), nullable=True)  # vault 内相对路径，如 数学/错题卡片/Q-123.md
 
 
 class ReviewRecord(Base):

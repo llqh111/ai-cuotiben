@@ -69,3 +69,26 @@ async def run_migrations():
                     await conn.execute(text(
                         f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
                     ))
+
+        # obsidian_path / vault_path — 知识库同步
+        for table, col_name, col_type in [
+            ("wrong_questions", "obsidian_path", "VARCHAR(500)"),
+            ("knowledge_points", "obsidian_path", "VARCHAR(500)"),
+            ("users", "vault_path", "VARCHAR(500)"),
+        ]:
+            if dialect == "sqlite":
+                result = await conn.execute(text(f"PRAGMA table_info({table})"))
+                cols = [row[1] for row in result.fetchall()]
+                if col_name not in cols:
+                    await conn.execute(text(
+                        f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
+                    ))
+            elif dialect == "postgresql":
+                result = await conn.execute(text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name=:tbl AND column_name=:col"
+                ), {"tbl": table, "col": col_name})
+                if not result.fetchone():
+                    await conn.execute(text(
+                        f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
+                    ))
