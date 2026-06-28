@@ -7,7 +7,7 @@ from app.database import engine, Base, AsyncSessionLocal
 import app.models  # to ensure models are registered
 from app.core.seed import seed_subjects
 from app.core.migration import run_migrations
-from app.api import upload, questions, stats, auth, review, export, sprint, generate, graph, notify, chapters
+from app.api import upload, questions, stats, auth, review, export, sprint, generate, graph, notify, chapters, knowledge
 
 IMAGE_DIR = os.environ.get("IMAGE_DIR", "images")
 os.makedirs(IMAGE_DIR, exist_ok=True)
@@ -59,6 +59,7 @@ app.include_router(generate.router, prefix="/api/generate", tags=["Generate"])
 app.include_router(graph.router, prefix="/api/graph", tags=["Graph"])
 app.include_router(notify.router, prefix="/api/notify", tags=["Notify"])
 app.include_router(chapters.router, prefix="/api/chapters", tags=["Chapters"])
+app.include_router(knowledge.router, prefix="/api/knowledge", tags=["Knowledge"])
 
 # Mount static files for uploaded images (cross-device access)
 app.mount("/api/images", StaticFiles(directory=IMAGE_DIR), name="images")
